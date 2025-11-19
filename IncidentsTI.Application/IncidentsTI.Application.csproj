@@ -13,4 +13,8 @@
     <PackageReference Include="MediatR" Version="13.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\IncidentsTI.Domain\IncidentsTI.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

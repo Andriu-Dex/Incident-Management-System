@@ -1,4 +1,8 @@
+using IncidentsTI.Infrastructure.Data;
 using IncidentsTI.Web.Components;
+using Microsoft.EntityFrameworkCore;
+using Blazored.Toast;
+using Blazored.Modal;
 
 namespace IncidentsTI.Web
 {
@@ -11,6 +15,15 @@ namespace IncidentsTI.Web
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+
+            // Configure Database
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            // Configure Blazored services
+            builder.Services.AddBlazoredToast();
+            builder.Services.AddBlazoredModal();
 
             var app = builder.Build();
 
