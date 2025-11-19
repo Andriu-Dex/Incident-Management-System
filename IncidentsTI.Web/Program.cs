@@ -58,6 +58,10 @@ namespace IncidentsTI.Web
             // Register Repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+            // Configure MediatR
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(
+                typeof(IncidentsTI.Application.DTOs.Users.UserDto).Assembly));
+
             // Configure Blazored services
             builder.Services.AddBlazoredToast();
             builder.Services.AddBlazoredModal();
