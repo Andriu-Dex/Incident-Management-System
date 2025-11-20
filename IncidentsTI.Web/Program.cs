@@ -12,7 +12,7 @@ namespace IncidentsTI.Web
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -87,7 +87,33 @@ namespace IncidentsTI.Web
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 
+            // Seed database
+            await SeedDatabaseAsync(app);
+
             app.Run();
+        }
+
+        private static async Task SeedDatabaseAsync(WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var services = scope.ServiceProvider;
+            
+            try
+            {
+                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+                var context = services.GetRequiredService<ApplicationDbContext>();
+                
+                // Ensure database is created and migrations are applied
+                await context.Database.MigrateAsync();
+                
+                // Seed users (roles are seeded via OnModelCreating)
+                await DatabaseSeeder.SeedUsersAsync(userManager);
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred while seeding the database.");
+            }
         }
     }
 }

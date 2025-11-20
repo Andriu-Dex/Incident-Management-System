@@ -1,0 +1,127 @@
+@page "/login"
+@layout Layout.EmptyLayout
+@using IncidentsTI.Application.DTOs.Auth
+@using IncidentsTI.Application.Features.Auth.Commands
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar Sesión</PageTitle>
+
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+        <div class="mb-8">
+            <h2 class="text-3xl font-extrabold text-gray-900 text-center">
+                Sistema de Gestión de Incidentes TI
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Iniciar sesión en su cuenta
+            </p>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                @errorMessage
+            </div>
+        }
+        
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" FormName="loginForm">
+            <DataAnnotationsValidator />
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="email" class="form-label">Correo Electrónico</label>
+                    <InputText id="email" @bind-Value="loginModel.Email" 
+                               class="form-input" 
+                               placeholder="usuario@uta.edu.ec" />
+                    <ValidationMessage For="@(() => loginModel.Email)" class="text-error text-sm mt-1" />
+                </div>
+
+                <div>
+                    <label for="password" class="form-label">Contraseña</label>
+                    <InputText id="password" type="password" @bind-Value="loginModel.Password" 
+                               class="form-input" 
+                               placeholder="••••••••" />
+                    <ValidationMessage For="@(() => loginModel.Password)" class="text-error text-sm mt-1" />
+                </div>
+            </div>
+
+            <div class="flex items-center mt-4">
+                <InputCheckbox id="remember" @bind-Value="loginModel.RememberMe" 
+                               class="h-4 w-4 rounded border-gray-300" />
+                <label for="remember" class="ml-2 text-sm text-gray-900">
+                    Recordarme
+                </label>
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" disabled="@isLoading" 
+                        class="btn btn-primary w-full">
+                    @if (isLoading)
+                    {
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Iniciando sesión...</span>
+                    }
+                    else
+                    {
+                        <span>Iniciar Sesión</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginDto? loginModel { get; set; }
+    
+    private bool isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        loginModel ??= new();
+    }
+
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        if (loginModel == null) return;
+        
+        isLoading = true;
+        errorMessage = null;
+        
+        try
+        {
+            var command = new LoginCommand
+            {
+                Email = loginModel.Email,
+                Password = loginModel.Password,
+                RememberMe = loginModel.RememberMe
+            };
+
+            var result = await Mediator.Send(command);
+
+            if (result.Success)
+            {
+                // Navegar forzando recarga completa para aplicar el estado de autenticación
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = result.Message;
+                isLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al iniciar sesión: {ex.Message}";
+            isLoading = false;
+        }
+    }
+}

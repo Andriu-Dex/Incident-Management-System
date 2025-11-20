@@ -1,16 +1,8 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @using Blazored.Toast.Configuration
 
-<div class="flex h-screen bg-gray-100">
-    <div class="w-64 bg-primary shadow-lg">
-        <NavMenu />
-    </div>
-
-    <main class="flex-1 overflow-y-auto">
-        <div class="container mx-auto">
-            @Body
-        </div>
-    </main>
+<div class="min-h-screen bg-gray-50">
+    @Body
 </div>
 
 <BlazoredToasts Position="ToastPosition.TopRight" 
