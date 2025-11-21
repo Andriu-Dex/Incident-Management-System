@@ -1,9 +1,9 @@
 @page "/login"
+@rendermode InteractiveServer
 @layout Layout.EmptyLayout
 @using IncidentsTI.Application.DTOs.Auth
-@using IncidentsTI.Application.Features.Auth.Commands
-@using MediatR
-@inject IMediator Mediator
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>Iniciar Sesión</PageTitle>
@@ -26,7 +26,7 @@
             </div>
         }
         
-        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" FormName="loginForm">
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
             <DataAnnotationsValidator />
             
             <div class="space-y-4">
@@ -77,44 +77,30 @@
 </div>
 
 @code {
-    [SupplyParameterFromForm]
-    private LoginDto? loginModel { get; set; }
-    
+    private LoginDto loginModel = new();
     private bool isLoading = false;
-
-    protected override void OnInitialized()
-    {
-        loginModel ??= new();
-    }
-
     private string? errorMessage;
 
     private async Task HandleLogin()
     {
-        if (loginModel == null) return;
-        
         isLoading = true;
         errorMessage = null;
         
         try
         {
-            var command = new LoginCommand
-            {
-                Email = loginModel.Email,
-                Password = loginModel.Password,
-                RememberMe = loginModel.RememberMe
-            };
+            // Usar JavaScript para hacer el POST y manejar la redirección
+            var result = await JS.InvokeAsync<LoginResponse>("loginUser", 
+                loginModel.Email, 
+                loginModel.Password, 
+                loginModel.RememberMe);
 
-            var result = await Mediator.Send(command);
-
-            if (result.Success)
+            if (result?.Success == true)
             {
-                // Navegar forzando recarga completa para aplicar el estado de autenticación
-                Navigation.NavigateTo("/", forceLoad: true);
+                // JavaScript ya manejará la redirección
             }
             else
             {
-                errorMessage = result.Message;
+                errorMessage = result?.Message ?? "Error desconocido";
                 isLoading = false;
             }
         }
@@ -123,5 +109,11 @@
             errorMessage = $"Error al iniciar sesión: {ex.Message}";
             isLoading = false;
         }
+    }
+
+    private class LoginResponse
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
     }
 }

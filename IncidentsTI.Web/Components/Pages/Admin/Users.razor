@@ -67,7 +67,7 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10">
-                                        <div class="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
+                                        <div class="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
                                             @GetInitials(user.FirstName, user.LastName)
                                         </div>
                                     </div>
@@ -169,26 +169,28 @@
         }
     }
 
-    private void OpenCreateUserModal()
+    private async Task OpenCreateUserModal()
     {
-        var parameters = new ModalParameters();
-        var options = new ModalOptions
+        try
         {
-            Size = ModalSize.Large
-        };
-        
-        var modal = Modal.Show<CreateUserModal>("Crear Nuevo Usuario", parameters, options);
-        modal.Result.ContinueWith(async task =>
-        {
-            if (!task.Result.Cancelled)
+            var parameters = new ModalParameters();
+            var options = new ModalOptions
             {
-                await InvokeAsync(async () =>
-                {
-                    await LoadUsers();
-                    StateHasChanged();
-                });
+                Size = ModalSize.Large
+            };
+            
+            var modal = Modal.Show<CreateUserModal>("Crear Nuevo Usuario", parameters, options);
+            var result = await modal.Result;
+            
+            if (!result.Cancelled)
+            {
+                await LoadUsers();
             }
-        });
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error al abrir modal: {ex.Message}");
+        }
     }
 
     private string GetInitials(string firstName, string lastName)

@@ -1,4 +1,3 @@
-@rendermode InteractiveServer
 @using IncidentsTI.Application.DTOs.Users
 @using IncidentsTI.Application.Features.Users.Commands
 @using IncidentsTI.Domain.Enums
@@ -7,7 +6,7 @@
 @inject IToastService ToastService
 
 <div class="p-6">
-    <EditForm Model="@createUserDto" OnValidSubmit="@HandleCreateUser" FormName="createUserForm">
+    <EditForm Model="@createUserDto" OnValidSubmit="@HandleCreateUser">
         <DataAnnotationsValidator />
         
         <div class="space-y-4">
@@ -72,15 +71,8 @@
 @code {
     [CascadingParameter] BlazoredModalInstance ModalInstance { get; set; } = default!;
 
-    [SupplyParameterFromForm]
-    private CreateUserDto? createUserDto { get; set; }
-    
+    private CreateUserDto createUserDto = new();
     private bool isLoading = false;
-
-    protected override void OnInitialized()
-    {
-        createUserDto ??= new();
-    }
 
     private async Task HandleCreateUser()
     {

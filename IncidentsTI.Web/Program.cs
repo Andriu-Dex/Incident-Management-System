@@ -5,11 +5,15 @@ using IncidentsTI.Infrastructure.Repositories;
 using IncidentsTI.Web.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Components;
 using Blazored.Toast;
 using Blazored.Modal;
 
 namespace IncidentsTI.Web
 {
+    // DTO for login endpoint
+    public record LoginRequest(string Email, string Password, bool RememberMe);
+
     public class Program
     {
         public static async Task Main(string[] args)
@@ -66,6 +70,20 @@ namespace IncidentsTI.Web
             builder.Services.AddBlazoredToast();
             builder.Services.AddBlazoredModal();
 
+            // Configure Circuit options to suppress authentication state errors during logout
+            builder.Services.AddServerSideBlazor()
+                .AddCircuitOptions(options => 
+                {
+                    options.DetailedErrors = builder.Environment.IsDevelopment();
+                });
+
+            // Configure HttpClient for server-side Blazor
+            builder.Services.AddScoped(sp =>
+            {
+                var navigationManager = sp.GetRequiredService<NavigationManager>();
+                return new HttpClient { BaseAddress = new Uri(navigationManager.BaseUri) };
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -86,6 +104,53 @@ namespace IncidentsTI.Web
 
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
+
+            // API endpoint for login (outside Blazor circuit)
+            app.MapPost("/api/auth/login", async (
+                LoginRequest request,
+                UserManager<ApplicationUser> userManager,
+                SignInManager<ApplicationUser> signInManager) =>
+            {
+                var user = await userManager.FindByEmailAsync(request.Email);
+                
+                if (user == null || !user.IsActive)
+                {
+                    return Results.Json(new { success = false, message = "Correo electrónico o contraseña incorrectos" });
+                }
+
+                var result = await signInManager.PasswordSignInAsync(
+                    user.UserName!,
+                    request.Password,
+                    request.RememberMe,
+                    lockoutOnFailure: false);
+
+                if (!result.Succeeded)
+                {
+                    return Results.Json(new { success = false, message = "Correo electrónico o contraseña incorrectos" });
+                }
+
+                var roles = await userManager.GetRolesAsync(user);
+
+                return Results.Json(new 
+                { 
+                    success = true, 
+                    message = "Inicio de sesión exitoso",
+                    user = new 
+                    {
+                        id = user.Id,
+                        email = user.Email,
+                        fullName = $"{user.FirstName} {user.LastName}",
+                        roles = roles
+                    }
+                });
+            });
+
+            // API endpoint for logout (outside Blazor circuit)
+            app.MapPost("/api/auth/logout", async (SignInManager<ApplicationUser> signInManager) =>
+            {
+                await signInManager.SignOutAsync();
+                return Results.Json(new { success = true, message = "Sesión cerrada exitosamente" });
+            });
 
             // Seed database
             await SeedDatabaseAsync(app);

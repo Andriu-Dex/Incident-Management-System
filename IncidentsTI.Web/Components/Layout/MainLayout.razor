@@ -1,8 +1,9 @@
 ﻿@inherits LayoutComponentBase
 @using Blazored.Toast.Configuration
+@attribute [StreamRendering]
 
 <div class="flex h-screen bg-gray-100">
-    <div class="w-64 bg-primary shadow-lg">
+    <div class="w-64 bg-blue-600 shadow-lg">
         <NavMenu />
     </div>
 
@@ -12,6 +13,8 @@
         </div>
     </main>
 </div>
+
+<script src="/js/auth.js"></script>
 
 <BlazoredToasts Position="ToastPosition.TopRight" 
                 Timeout="5" 
