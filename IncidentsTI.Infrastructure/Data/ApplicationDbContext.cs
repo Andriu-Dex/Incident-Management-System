@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     }
 
     public DbSet<Service> Services { get; set; }
+    public DbSet<Incident> Incidents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,8 +25,50 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Seed roles
         SeedRoles(modelBuilder);
 
+        // Configure Incident relationships
+        ConfigureIncidentRelationships(modelBuilder);
+
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+    }
+
+    private void ConfigureIncidentRelationships(ModelBuilder modelBuilder)
+    {
+        // Incident -> User (Creator)
+        modelBuilder.Entity<Incident>()
+            .HasOne(i => i.User)
+            .WithMany()
+            .HasForeignKey(i => i.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Incident -> Service
+        modelBuilder.Entity<Incident>()
+            .HasOne(i => i.Service)
+            .WithMany()
+            .HasForeignKey(i => i.ServiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Incident -> User (AssignedTo)
+        modelBuilder.Entity<Incident>()
+            .HasOne(i => i.AssignedTo)
+            .WithMany()
+            .HasForeignKey(i => i.AssignedToId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // Index for better query performance
+        modelBuilder.Entity<Incident>()
+            .HasIndex(i => i.TicketNumber)
+            .IsUnique();
+
+        modelBuilder.Entity<Incident>()
+            .HasIndex(i => i.UserId);
+
+        modelBuilder.Entity<Incident>()
+            .HasIndex(i => i.AssignedToId);
+
+        modelBuilder.Entity<Incident>()
+            .HasIndex(i => i.Status);
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)

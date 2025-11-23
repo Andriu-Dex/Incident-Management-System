@@ -62,6 +62,7 @@ namespace IncidentsTI.Web
             // Register Repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
+            builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
 
             // Configure MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(

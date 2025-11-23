@@ -1,0 +1,196 @@
+@page "/technician/dashboard"
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.DTOs
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize(Roles = "Technician,Administrator")]
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+@rendermode InteractiveServer
+
+<PageTitle>Dashboard Técnico - Sistema de Incidentes TI</PageTitle>
+
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <h1 class="text-3xl font-bold text-gray-900">Dashboard Técnico</h1>
+            </div>
+            <p class="text-gray-600">Gestiona tus incidentes asignados</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm">
+                <div class="text-blue-600 text-sm font-semibold mb-1">Asignados</div>
+                <div class="text-3xl font-bold text-gray-900">@incidents.Count()</div>
+            </div>
+            <div class="bg-white rounded-xl p-6 border-2 border-yellow-200 shadow-sm">
+                <div class="text-yellow-600 text-sm font-semibold mb-1">En Progreso</div>
+                <div class="text-3xl font-bold text-gray-900">@incidents.Count(i => i.Status == IncidentStatus.InProgress)</div>
+            </div>
+            <div class="bg-white rounded-xl p-6 border-2 border-red-200 shadow-sm">
+                <div class="text-red-600 text-sm font-semibold mb-1">Alta Prioridad</div>
+                <div class="text-3xl font-bold text-gray-900">@incidents.Count(i => i.Priority == IncidentPriority.Critical || i.Priority == IncidentPriority.High)</div>
+            </div>
+            <div class="bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm">
+                <div class="text-green-600 text-sm font-semibold mb-1">Resueltos</div>
+                <div class="text-3xl font-bold text-gray-900">@incidents.Count(i => i.Status == IncidentStatus.Resolved || i.Status == IncidentStatus.Closed)</div>
+            </div>
+        </div>
+
+        <!-- Incidents Table -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            @if (incidents.Any())
+            {
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <tr>
+                            <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase">Ticket</th>
+                            <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase">Título</th>
+                            <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase">Usuario</th>
+                            <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase">Prioridad</th>
+                            <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase">Estado</th>
+                            <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var incident in incidents)
+                        {
+                            <tr class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200">
+                                <td class="px-8 py-6 whitespace-nowrap">
+                                    <span class="font-mono text-sm font-semibold text-blue-600">@incident.TicketNumber</span>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="text-sm font-medium text-gray-900">@incident.Title</div>
+                                    <div class="text-xs text-gray-500">@incident.ServiceName</div>
+                                </td>
+                                <td class="px-8 py-6 whitespace-nowrap text-sm text-gray-700">
+                                    @incident.UserName
+                                </td>
+                                <td class="px-8 py-6 whitespace-nowrap">
+                                    <span class="@GetPriorityBadgeClass(incident.Priority)">
+                                        @incident.PriorityName
+                                    </span>
+                                </td>
+                                <td class="px-8 py-6 whitespace-nowrap">
+                                    <select value="@incident.Status" @onchange="(e) => UpdateStatus(incident.Id, e)" class="px-3 py-1 border-2 border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-blue-500">
+                                        <option value="@IncidentStatus.Open">Abierto</option>
+                                        <option value="@IncidentStatus.InProgress">En Progreso</option>
+                                        <option value="@IncidentStatus.Escalated">Escalado</option>
+                                        <option value="@IncidentStatus.Resolved">Resuelto</option>
+                                        <option value="@IncidentStatus.Closed">Cerrado</option>
+                                    </select>
+                                </td>
+                                <td class="px-8 py-6 whitespace-nowrap">
+                                    <button @onclick="() => ViewDetail(incident.Id)" class="text-blue-600 hover:text-blue-800 font-semibold mr-4 inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        Ver
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="p-12 text-center">
+                    <svg class="w-24 h-24 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    <p class="text-gray-500 text-lg font-medium">No tienes incidentes asignados</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private List<IncidentListDto> incidents = new();
+    private string? currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState != null)
+        {
+            var authState = await AuthenticationState;
+            currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        await LoadIncidents();
+    }
+
+    private async Task LoadIncidents()
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+            return;
+
+        var query = new GetAssignedIncidentsQuery { AssignedToId = currentUserId };
+        incidents = (await Mediator.Send(query)).ToList();
+    }
+
+    private async Task UpdateStatus(int incidentId, ChangeEventArgs e)
+    {
+        if (Enum.TryParse<IncidentStatus>(e.Value?.ToString(), out var newStatus))
+        {
+            try
+            {
+                var command = new UpdateIncidentStatusCommand
+                {
+                    IncidentId = incidentId,
+                    NewStatus = newStatus
+                };
+
+                var success = await Mediator.Send(command);
+
+                if (success)
+                {
+                    ToastService.ShowSuccess("Estado actualizado");
+                    await LoadIncidents();
+                }
+                else
+                {
+                    ToastService.ShowError("Error al actualizar el estado");
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Error: {ex.Message}");
+            }
+        }
+    }
+
+    private void ViewDetail(int id)
+    {
+        Navigation.NavigateTo($"/incidents/{id}");
+    }
+
+    private string GetPriorityBadgeClass(IncidentPriority priority)
+    {
+        return priority switch
+        {
+            IncidentPriority.Low => "px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border-2 border-green-300",
+            IncidentPriority.Medium => "px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 border-2 border-yellow-300",
+            IncidentPriority.High => "px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 border-2 border-orange-300",
+            IncidentPriority.Critical => "px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border-2 border-red-300",
+            _ => "px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"
+        };
+    }
+}

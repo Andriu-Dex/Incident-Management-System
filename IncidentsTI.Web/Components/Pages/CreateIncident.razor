@@ -1,0 +1,274 @@
+@page "/incidents/new"
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.DTOs
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@attribute [StreamRendering(false)]
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveServer
+
+<PageTitle>Crear Incidente - Sistema de Incidentes TI</PageTitle>
+
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+                <svg class="w-8 h-8 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <h1 class="text-3xl font-bold text-gray-900">Crear Nuevo Incidente</h1>
+            </div>
+            <p class="text-gray-600">Complete el formulario para reportar un problema o solicitud</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+            <EditForm Model="@createDto" OnValidSubmit="@HandleSubmit" OnInvalidSubmit="@HandleInvalidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-red-600 mb-4" />
+
+                <!-- Service Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Servicio
+                        </span>
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <InputSelect @bind-Value="createDto.ServiceId" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="0">-- Seleccione un servicio --</option>
+                        @foreach (var service in services)
+                        {
+                            <option value="@service.Id">@service.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => createDto.ServiceId)" class="text-red-500 text-sm mt-1" />
+                </div>
+
+                <!-- Type and Priority Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Type -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <span class="inline-flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Tipo de Incidente
+                            </span>
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <InputSelect @bind-Value="createDto.Type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="@IncidentType.Failure">❌ Falla</option>
+                            <option value="@IncidentType.Query">❓ Consulta</option>
+                            <option value="@IncidentType.Request">📥 Requerimiento</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => createDto.Type)" class="text-red-500 text-sm mt-1" />
+                    </div>
+
+                    <!-- Priority -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <span class="inline-flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                Prioridad
+                            </span>
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <InputSelect @bind-Value="createDto.Priority" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="@IncidentPriority.Low">🟢 Baja</option>
+                            <option value="@IncidentPriority.Medium">🟡 Media</option>
+                            <option value="@IncidentPriority.High">🟠 Alta</option>
+                            <option value="@IncidentPriority.Critical">🔴 Crítica</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => createDto.Priority)" class="text-red-500 text-sm mt-1" />
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                            Título
+                        </span>
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <InputText @bind-Value="createDto.Title" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Resumen breve del problema" />
+                    <ValidationMessage For="@(() => createDto.Title)" class="text-red-500 text-sm mt-1" />
+                    <p class="text-sm text-gray-500 mt-1">@createDto.Title.Length / 200 caracteres</p>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-8">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                            </svg>
+                            Descripción Detallada
+                        </span>
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <InputTextArea @bind-Value="createDto.Description" rows="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Describa el problema en detalle, pasos para reproducirlo, impacto, etc." />
+                    <ValidationMessage For="@(() => createDto.Description)" class="text-red-500 text-sm mt-1" />
+                    <p class="text-sm text-gray-500 mt-1">@createDto.Description.Length / 2000 caracteres</p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-4">
+                    <button type="submit" disabled="@isSubmitting" class="flex-1 bg-blue-600 text-white px-6 py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if (isSubmitting)
+                        {
+                            <span class="flex items-center justify-center gap-2">
+                                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Creando...</span>
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span>Crear Incidente</span>
+                            </span>
+                        }
+                    </button>
+                    <button type="button" @onclick="Cancel" class="px-6 py-4 bg-gray-200 text-gray-800 rounded-lg font-bold text-lg hover:bg-gray-300 transition-all duration-200 shadow-md">
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            <span>Cancelar</span>
+                        </span>
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateIncidentDto createDto = new();
+    private List<ServiceDto> services = new();
+    private bool isSubmitting = false;
+    private string? currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            Console.WriteLine($"Usuario autenticado: {authState.User.Identity?.Name}");
+            Console.WriteLine($"UserId obtenido: {currentUserId}");
+            
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                Console.WriteLine("ADVERTENCIA: No se pudo obtener el UserId del usuario autenticado");
+                foreach (var claim in authState.User.Claims)
+                {
+                    Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error obteniendo usuario: {ex.Message}");
+        }
+
+        // Load active services
+        try
+        {
+            var query = new GetActiveServicesQuery();
+            services = (await Mediator.Send(query)).ToList();
+            Console.WriteLine($"Servicios cargados: {services.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando servicios: {ex.Message}");
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        Console.WriteLine("Formulario inválido - revisando validaciones:");
+        Console.WriteLine($"ServiceId: {createDto.ServiceId}");
+        Console.WriteLine($"Title: {createDto.Title}");
+        Console.WriteLine($"Description: {createDto.Description}");
+        ToastService.ShowError("Por favor complete todos los campos requeridos correctamente");
+    }
+
+    private async Task HandleSubmit()
+    {
+        Console.WriteLine("HandleSubmit iniciado");
+        Console.WriteLine($"ServiceId: {createDto.ServiceId}");
+        Console.WriteLine($"UserId: {currentUserId}");
+        
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            ToastService.ShowError("No se pudo identificar al usuario");
+            return;
+        }
+
+        isSubmitting = true;
+
+        try
+        {
+            Console.WriteLine("Creando comando...");
+            var command = new CreateIncidentCommand
+            {
+                UserId = currentUserId,
+                ServiceId = createDto.ServiceId,
+                Type = createDto.Type,
+                Priority = createDto.Priority,
+                Title = createDto.Title,
+                Description = createDto.Description
+            };
+
+            Console.WriteLine("Enviando comando a MediatR...");
+            var result = await Mediator.Send(command);
+            Console.WriteLine($"Incidente creado: {result.TicketNumber}");
+
+            ToastService.ShowSuccess($"Incidente {result.TicketNumber} creado exitosamente");
+            Navigation.NavigateTo("/incidents");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            ToastService.ShowError($"Error al crear el incidente: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/incidents");
+    }
+}

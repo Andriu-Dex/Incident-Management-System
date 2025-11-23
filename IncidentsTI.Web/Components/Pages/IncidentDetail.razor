@@ -1,0 +1,226 @@
+@page "/incidents/{id:int}"
+@using IncidentsTI.Application.DTOs
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Detalle del Incidente - Sistema de Incidentes TI</PageTitle>
+
+@if (incident == null)
+{
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+            <svg class="animate-spin h-16 w-16 mx-auto mb-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-600 text-lg">Cargando incidente...</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-8">
+        <div class="max-w-5xl mx-auto">
+            <!-- Header -->
+            <div class="mb-6">
+                <button @onclick="GoBack" class="text-blue-600 hover:text-blue-800 font-semibold mb-4">
+                    ← Volver
+                </button>
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                            </svg>
+                            <h1 class="text-3xl font-bold text-gray-900">@incident.TicketNumber</h1>
+                        </div>
+                        <p class="text-gray-600">@incident.Title</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="@GetStatusBadgeClass(incident.Status)">
+                            @incident.StatusName
+                        </span>
+                        <div class="mt-2">
+                            <span class="@GetPriorityBadgeClass(incident.Priority)">
+                                @incident.PriorityName
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column - Details -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Description Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-4">
+                            <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                            </svg>
+                            <h2 class="text-lg font-bold text-gray-900">Descripción</h2>
+                        </div>
+                        <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">@incident.Description</p>
+                    </div>
+
+                    <!-- Service Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-4">
+                            <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <h2 class="text-lg font-bold text-gray-900">Servicio Asociado</h2>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 rounded-lg p-3 mr-4">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">@incident.ServiceName</div>
+                                <div class="text-sm text-gray-600">@incident.ServiceCategory</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Info -->
+                <div class="space-y-6">
+                    <!-- Reporter Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <h3 class="text-sm font-bold text-gray-700">Reportado por</h3>
+                        </div>
+                        <div class="text-sm">
+                            <div class="font-semibold text-gray-900">@incident.UserName</div>
+                            <div class="text-gray-600">@incident.UserEmail</div>
+                        </div>
+                    </div>
+
+                    <!-- Assigned Card -->
+                    @if (!string.IsNullOrEmpty(incident.AssignedToName))
+                    {
+                        <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                            <div class="flex items-center gap-2 mb-3">
+                                <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                <h3 class="text-sm font-bold text-gray-700">Asignado a</h3>
+                            </div>
+                            <div class="text-sm">
+                                <div class="font-semibold text-gray-900">@incident.AssignedToName</div>
+                                <div class="text-gray-600">@incident.AssignedToEmail</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bg-yellow-50 rounded-xl p-6 border-2 border-yellow-200">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="w-4 h-4 text-yellow-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <h3 class="text-sm font-bold text-yellow-800">Sin asignar</h3>
+                            </div>
+                            <p class="text-sm text-yellow-700">Este incidente aún no ha sido asignado a un técnico.</p>
+                        </div>
+                    }
+
+                    <!-- Dates Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <h3 class="text-sm font-bold text-gray-700">Fechas</h3>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <div class="text-gray-600">Creado</div>
+                                <div class="font-semibold text-gray-900">@incident.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+                            @if (incident.UpdatedAt.HasValue)
+                            {
+                                <div class="pt-2 border-t border-gray-200">
+                                    <div class="text-gray-600">Última actualización</div>
+                                    <div class="font-semibold text-gray-900">@incident.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Type Card -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                            <h3 class="text-sm font-bold text-gray-700">Tipo</h3>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-900">@incident.TypeName</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private IncidentDto? incident;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadIncident();
+    }
+
+    private async Task LoadIncident()
+    {
+        var query = new GetIncidentByIdQuery { Id = Id };
+        incident = await Mediator.Send(query);
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/incidents");
+    }
+
+    private string GetStatusBadgeClass(IncidentStatus status)
+    {
+        return status switch
+        {
+            IncidentStatus.Open => "px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800 border-2 border-green-300",
+            IncidentStatus.InProgress => "px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800 border-2 border-yellow-300",
+            IncidentStatus.Escalated => "px-4 py-2 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 border-2 border-orange-300",
+            IncidentStatus.Resolved => "px-4 py-2 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 border-2 border-blue-300",
+            IncidentStatus.Closed => "px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border-2 border-gray-300",
+            _ => "px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800"
+        };
+    }
+
+    private string GetPriorityBadgeClass(IncidentPriority priority)
+    {
+        return priority switch
+        {
+            IncidentPriority.Low => "px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800 border-2 border-green-300",
+            IncidentPriority.Medium => "px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800 border-2 border-yellow-300",
+            IncidentPriority.High => "px-4 py-2 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 border-2 border-orange-300",
+            IncidentPriority.Critical => "px-4 py-2 text-sm font-semibold rounded-full bg-red-100 text-red-800 border-2 border-red-300",
+            _ => "px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800"
+        };
+    }
+}
