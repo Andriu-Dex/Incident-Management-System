@@ -108,16 +108,14 @@ Nombre: Valentina Estudiante
 ### Tecnologías Utilizadas
 
 - **.NET 8** - Framework principal
-- **Blazor Server** - UI interactiva
+- **Blazor Server** - UI interactiva con `@rendermode InteractiveServer`
 - **ASP.NET Core Identity** - Autenticación y autorización
 - **Entity Framework Core 8** - ORM
 - **SQL Server** - Base de datos
-- **MediatR 13** - Patrón CQRS
-- **FluentValidation 12** - Validaciones
-- **AutoMapper 15** - Mapeo de objetos
-- **Tailwind CSS v3** - Estilos
-- **Blazored.Toast 4.2** - Notificaciones
-- **Blazored.Modal 7.3** - Modales
+- **MediatR 13.1.0** - Patrón CQRS
+- **Tailwind CSS v3.4.18** - Estilos (compilado con Node.js v20.18.0)
+- **Blazored.Toast 4.2.1** - Notificaciones
+- **JavaScript (ES6)** - auth.js para login/logout sin conflictos de headers
 
 ### Ejecutar la Aplicación
 
@@ -126,22 +124,47 @@ Nombre: Valentina Estudiante
 dotnet build IncidentsTI.sln
 ```
 
-2. **Compilar CSS (Tailwind):**
+2. **Instalar dependencias de Node.js (primera vez):**
 ```bash
 cd IncidentsTI.Web
-npm run css:build
+npm install
 ```
 
-3. **Ejecutar la aplicación:**
+3. **Compilar CSS (Tailwind):**
 ```bash
-cd IncidentsTI.Web
+npm run css:build
+```
+O en modo watch para desarrollo:
+```bash
+npm run css:watch
+```
+
+4. **Ejecutar la aplicación:**
+```bash
 dotnet run
 ```
 
-4. **Abrir en el navegador:**
+5. **Abrir en el navegador:**
 ```
-http://localhost:5132
+http://localhost:5132  (HTTP)
+https://localhost:7117 (HTTPS)
 ```
+
+### Solución de Problemas Comunes
+
+#### "Headers are read-only, response has already started"
+✅ **Solucionado:** Se usan endpoints HTTP (`/api/auth/login` y `/api/auth/logout`) fuera del circuito de Blazor Server para manejar autenticación.
+
+#### Modal no aparece
+✅ **Solucionado:** Modal personalizado con estilos inline y `z-index: 9999`. No depende de librerías externas.
+
+#### Tailwind CSS no aplica estilos
+- Ejecutar `npm run css:build` antes de iniciar la aplicación
+- Verificar que existe `wwwroot/css/app.min.css`
+- En desarrollo, usar `npm run css:watch` para recompilar automáticamente
+
+#### Error de circuito Blazor durante logout
+✅ **Esperado:** Los errores de circuito durante logout son normales porque la sesión se cierra antes de que el circuito SignalR termine. No afectan la funcionalidad.
 
 ### Protección de Rutas
 
@@ -166,11 +189,31 @@ http://localhost:5132
 
 ### Notas Técnicas
 
+#### Autenticación con Endpoints HTTP
+Para evitar el error "Headers are read-only, response has already started" en Blazor Server, se implementó:
+- **Endpoints HTTP fuera del circuito Blazor:** `/api/auth/login` y `/api/auth/logout`
+- **JavaScript para redirección:** `auth.js` con funciones `loginUser()` y `logoutUser()`
+- **SignIn/SignOut en endpoints HTTP:** La autenticación ocurre fuera del circuito SignalR de Blazor
+- **NavigationManager con forceLoad:** Recarga completa de la página después de autenticación
+
+#### Modal Personalizado
+Se reemplazó Blazored.Modal por un modal personalizado debido a conflictos de z-index y CSS:
+- **Estilos inline:** `position: fixed; z-index: 9999` para máxima compatibilidad
+- **EventCallbacks:** `OnUserCreated` y `OnCancel` para comunicación entre componentes
+- **Overlay con backdrop:** Click en el fondo cierra el modal
+
+#### Renderizado Estratégico
+- **Componentes estáticos:** `NavMenu`, `MainLayout` (acceso correcto a `CascadingAuthenticationState`)
+- **Componentes interactivos:** Solo `Login.razor`, `Home.razor`, `Users.razor` con `@rendermode InteractiveServer`
+- **CascadingAuthenticationState:** Solo en `Routes.razor` (único lugar correcto)
+
+#### Otras Características
 - **Seed Automático:** Al iniciar la aplicación, se ejecuta automáticamente el seed de roles y usuarios si la base de datos está vacía
-- **Validaciones:** Se aplican validaciones tanto en cliente (Blazor) como en servidor (FluentValidation)
+- **Validaciones:** DataAnnotations en DTOs + validación en cliente (Blazor)
 - **Seguridad:** Las contraseñas requieren: 1 mayúscula, 1 minúscula, 1 dígito, mínimo 6 caracteres
-- **Sesiones:** La sesión expira después de 8 horas de inactividad
+- **Sesiones:** La sesión expira después de 8 horas de inactividad con sliding expiration
 - **UI en Español:** Toda la interfaz está en español como se solicitó en los requirements
+- **Tailwind CSS:** Compilación automática con `npm run css:build` (watch mode: `npm run css:watch`)
 
 ---
 
