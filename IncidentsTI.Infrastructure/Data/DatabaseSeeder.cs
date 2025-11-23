@@ -1,6 +1,7 @@
 using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace IncidentsTI.Infrastructure.Data
 {
@@ -131,6 +132,86 @@ namespace IncidentsTI.Infrastructure.Data
                     await userManager.AddToRoleAsync(user, role.ToString());
                 }
             }
+        }
+
+        public static async Task SeedServicesAsync(ApplicationDbContext context)
+        {
+            // Check if services already exist
+            if (await context.Services.AnyAsync())
+            {
+                return; // Services already seeded
+            }
+
+            var services = new List<Service>
+            {
+                new Service
+                {
+                    Name = "Correo Institucional",
+                    Description = "Servicios relacionados con el correo electrónico institucional (creación, recuperación de contraseña, configuración)",
+                    Category = ServiceCategory.Email,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "Red Inalámbrica (WiFi)",
+                    Description = "Problemas de conectividad a la red inalámbrica de la universidad, acceso a WiFi",
+                    Category = ServiceCategory.Network,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "Sistema de Gestión Académica",
+                    Description = "Soporte para sistemas académicos (matrícula, calificaciones, horarios, plataforma LMS)",
+                    Category = ServiceCategory.AcademicSystems,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "Soporte de Hardware",
+                    Description = "Reparación y mantenimiento de equipos de cómputo, impresoras, proyectores y otros dispositivos",
+                    Category = ServiceCategory.Hardware,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "Instalación de Software",
+                    Description = "Instalación, actualización y configuración de software institucional y licencias",
+                    Category = ServiceCategory.Software,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "Acceso a Recursos Digitales",
+                    Description = "Acceso a bibliotecas virtuales, bases de datos académicas y recursos digitales",
+                    Category = ServiceCategory.AcademicSystems,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "VPN Institucional",
+                    Description = "Configuración y soporte para acceso remoto a través de VPN",
+                    Category = ServiceCategory.Network,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Service
+                {
+                    Name = "Soporte Técnico General",
+                    Description = "Consultas y soporte técnico general que no se categorizan en otros servicios",
+                    Category = ServiceCategory.Other,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                }
+            };
+
+            await context.Services.AddRangeAsync(services);
+            await context.SaveChangesAsync();
         }
     }
 }

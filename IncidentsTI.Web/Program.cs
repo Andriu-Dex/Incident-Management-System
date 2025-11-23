@@ -61,6 +61,7 @@ namespace IncidentsTI.Web
 
             // Register Repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 
             // Configure MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(
@@ -173,6 +174,9 @@ namespace IncidentsTI.Web
                 
                 // Seed users (roles are seeded via OnModelCreating)
                 await DatabaseSeeder.SeedUsersAsync(userManager);
+                
+                // Seed services
+                await DatabaseSeeder.SeedServicesAsync(context);
             }
             catch (Exception ex)
             {

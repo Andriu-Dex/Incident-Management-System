@@ -1,0 +1,190 @@
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.DTOs
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@using Blazored.Toast.Services
+@inject IMediator Mediator
+@inject IToastService ToastService
+
+<div class="p-8">
+    <div class="mb-6 pb-4 border-b border-gray-200">
+        <h2 class="text-3xl font-bold text-gray-900">
+            @(ServiceToEdit == null ? "Crear Nuevo Servicio" : "Editar Servicio")
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+            @(ServiceToEdit == null ? "Completa la información para registrar un nuevo servicio" : "Actualiza la información del servicio")
+        </p>
+    </div>
+
+    <EditForm Model="@serviceForm" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="mb-6">
+            <label class="block text-gray-800 text-sm font-semibold mb-2">
+                Nombre del Servicio <span class="text-red-500">*</span>
+            </label>
+            <InputText @bind-Value="serviceForm.Name" 
+                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                       placeholder="Ej: Correo Institucional" />
+            <ValidationMessage For="@(() => serviceForm.Name)" class="text-red-500 text-sm mt-1 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </ValidationMessage>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-800 text-sm font-semibold mb-2">
+                Descripción <span class="text-red-500">*</span>
+            </label>
+            <InputTextArea @bind-Value="serviceForm.Description" 
+                          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none" 
+                          rows="5"
+                          placeholder="Describe el servicio y los tipos de incidentes que cubre..." />
+            <ValidationMessage For="@(() => serviceForm.Description)" class="text-red-500 text-sm mt-1 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </ValidationMessage>
+            <p class="text-xs text-gray-500 mt-1">Caracteres: @serviceForm.Description.Length / 1000</p>
+        </div>
+
+        <div class="mb-8">
+            <label class="block text-gray-800 text-sm font-semibold mb-2">
+                Categoría <span class="text-red-500">*</span>
+            </label>
+            <InputSelect @bind-Value="serviceForm.Category" 
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
+                <option value="">-- Seleccione una categoría --</option>
+                <option value="@ServiceCategory.Email">📧 Correo</option>
+                <option value="@ServiceCategory.Network">📡 Red</option>
+                <option value="@ServiceCategory.AcademicSystems">📚 Sistemas Académicos</option>
+                <option value="@ServiceCategory.Hardware">💻 Hardware</option>
+                <option value="@ServiceCategory.Software">💿 Software</option>
+                <option value="@ServiceCategory.Other">📦 Otro</option>
+            </InputSelect>
+            <ValidationMessage For="@(() => serviceForm.Category)" class="text-red-500 text-sm mt-1 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </ValidationMessage>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <button type="button" 
+                    @onclick="HandleCancel"
+                    class="px-6 py-3 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
+                Cancelar
+            </button>
+            <button type="submit" 
+                    disabled="@isSubmitting"
+                    class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                @if (isSubmitting)
+                {
+                    <span class="flex items-center">
+                        <span class="inline-block animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></span>
+                        Guardando...
+                    </span>
+                }
+                else
+                {
+                    <>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>@(ServiceToEdit == null ? "Crear Servicio" : "Guardar Cambios")</span>
+                    </>
+                }
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public ServiceDto? ServiceToEdit { get; set; }
+    [Parameter] public EventCallback OnServiceSaved { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private ServiceFormModel serviceForm = new();
+    private bool isSubmitting = false;
+
+    protected override void OnInitialized()
+    {
+        if (ServiceToEdit != null)
+        {
+            serviceForm = new ServiceFormModel
+            {
+                Id = ServiceToEdit.Id,
+                Name = ServiceToEdit.Name,
+                Description = ServiceToEdit.Description,
+                Category = ServiceToEdit.Category
+            };
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isSubmitting) return;
+
+        isSubmitting = true;
+        try
+        {
+            if (ServiceToEdit == null)
+            {
+                // Create new service
+                var createDto = new CreateServiceDto
+                {
+                    Name = serviceForm.Name,
+                    Description = serviceForm.Description,
+                    Category = serviceForm.Category
+                };
+
+                await Mediator.Send(new CreateServiceCommand(createDto));
+            }
+            else
+            {
+                // Update existing service
+                var updateDto = new UpdateServiceDto
+                {
+                    Id = serviceForm.Id,
+                    Name = serviceForm.Name,
+                    Description = serviceForm.Description,
+                    Category = serviceForm.Category
+                };
+
+                await Mediator.Send(new UpdateServiceCommand(updateDto));
+            }
+
+            await OnServiceSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error al guardar: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+
+    private class ServiceFormModel
+    {
+        public int Id { get; set; }
+        
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre es obligatorio")]
+        [System.ComponentModel.DataAnnotations.StringLength(200, ErrorMessage = "El nombre no puede exceder 200 caracteres")]
+        public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "La descripción es obligatoria")]
+        [System.ComponentModel.DataAnnotations.StringLength(1000, ErrorMessage = "La descripción no puede exceder 1000 caracteres")]
+        public string Description { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "La categoría es obligatoria")]
+        public ServiceCategory Category { get; set; }
+    }
+}

@@ -1,0 +1,306 @@
+@page "/admin/services"
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Application.DTOs
+@using MediatR
+@using Blazored.Toast.Services
+@inject IMediator Mediator
+@inject IToastService ToastService
+@attribute [Authorize(Roles = "Administrator,Technician")]
+@rendermode InteractiveServer
+
+<PageTitle>Gestión de Servicios</PageTitle>
+
+<div class="px-8 py-6 max-w-7xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-3">Catálogo de Servicios</h1>
+        <p class="text-lg text-gray-600">Administra los servicios de TI disponibles para los incidentes</p>
+    </div>
+
+    <div class="mb-8 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+                <span class="text-blue-800 font-semibold">Total: @services.Count()</span>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                <span class="text-green-800 font-semibold">Activos: @services.Count(s => s.IsActive)</span>
+            </div>
+        </div>
+        <button @onclick="OpenCreateModal" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="font-semibold">Nuevo Servicio</span>
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Cargando servicios...</p>
+        </div>
+    }
+    else if (services == null || !services.Any())
+    {
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-6">
+            <div class="flex items-center">
+                <svg class="w-6 h-6 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p class="text-yellow-800 font-medium">No hay servicios registrados en el sistema.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                        <tr>
+                            <th class="px-8 py-5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Servicio</th>
+                            <th class="px-8 py-5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</th>
+                            <th class="px-8 py-5 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Categoría</th>
+                            <th class="px-8 py-5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Estado</th>
+                            <th class="px-8 py-5 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        @foreach (var service in services)
+                        {
+                            <tr class="border-b border-gray-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-300 @(service.IsActive ? "" : "opacity-60")">
+                                <td class="px-8 py-6 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-12 w-12 rounded-xl flex items-center justify-center shadow-sm @GetCategoryBackgroundClass(service.Category)">
+                                            @GetCategoryIcon(service.Category)
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="font-semibold text-gray-900 text-base leading-relaxed">@service.Name</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="text-sm text-gray-600 max-w-md leading-relaxed">@service.Description</div>
+                                </td>
+                                <td class="px-8 py-6 whitespace-nowrap">
+                                    <span class="px-4 py-2 inline-flex items-center text-sm font-semibold rounded-lg shadow-sm @GetCategoryColorClass(service.Category)">
+                                        <span class="w-2 h-2 rounded-full mr-2 @GetCategoryDotClass(service.Category)"></span>
+                                        @GetCategoryDisplayName(service.Category)
+                                    </span>
+                                </td>
+                                <td class="px-8 py-6 whitespace-nowrap text-center">
+                                    @if (service.IsActive)
+                                    {
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                            </svg>
+                                            Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                            Inactivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-6 py-5 whitespace-nowrap text-center">
+                                    <div class="flex items-center justify-center space-x-3">
+                                        <button @onclick="() => OpenEditModal(service)" 
+                                                class="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200 border border-blue-200">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            <span class="text-sm font-medium">Editar</span>
+                                        </button>
+                                        @if (service.IsActive)
+                                        {
+                                            <button @onclick="() => ToggleServiceStatus(service.Id)" 
+                                                    class="inline-flex items-center px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors duration-200 border border-red-200">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                <span class="text-sm font-medium">Desactivar</span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button @onclick="() => ToggleServiceStatus(service.Id)" 
+                                                    class="inline-flex items-center px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors duration-200 border border-green-200">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <span class="text-sm font-medium">Activar</span>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="background: white; border-radius: 0.5rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <ServiceModal ServiceToEdit="selectedService" OnServiceSaved="HandleServiceSaved" OnCancel="CloseModal" />
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<ServiceDto> services = new List<ServiceDto>();
+    private bool isLoading = true;
+    private bool showModal = false;
+    private ServiceDto? selectedService = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServices();
+    }
+
+    private async Task LoadServices()
+    {
+        isLoading = true;
+        try
+        {
+            services = await Mediator.Send(new GetAllServicesQuery());
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error al cargar servicios: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        selectedService = null;
+        showModal = true;
+    }
+
+    private void OpenEditModal(ServiceDto service)
+    {
+        selectedService = service;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedService = null;
+    }
+
+    private async Task HandleServiceSaved()
+    {
+        CloseModal();
+        await LoadServices();
+        ToastService.ShowSuccess("Servicio guardado exitosamente");
+    }
+
+    private async Task ToggleServiceStatus(int serviceId)
+    {
+        try
+        {
+            var result = await Mediator.Send(new ToggleServiceStatusCommand(serviceId));
+            
+            if (result)
+            {
+                await LoadServices();
+                ToastService.ShowSuccess("Estado del servicio actualizado exitosamente");
+            }
+            else
+            {
+                ToastService.ShowError("No se pudo actualizar el estado del servicio");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    private string GetCategoryDisplayName(Domain.Enums.ServiceCategory category)
+    {
+        return category switch
+        {
+            Domain.Enums.ServiceCategory.Email => "Correo",
+            Domain.Enums.ServiceCategory.Network => "Red",
+            Domain.Enums.ServiceCategory.AcademicSystems => "Sistemas Académicos",
+            Domain.Enums.ServiceCategory.Hardware => "Hardware",
+            Domain.Enums.ServiceCategory.Software => "Software",
+            Domain.Enums.ServiceCategory.Other => "Otro",
+            _ => category.ToString()
+        };
+    }
+
+    private string GetCategoryColorClass(Domain.Enums.ServiceCategory category)
+    {
+        return category switch
+        {
+            Domain.Enums.ServiceCategory.Email => "bg-purple-50 text-purple-800 border-2 border-purple-300",
+            Domain.Enums.ServiceCategory.Network => "bg-cyan-50 text-cyan-800 border-2 border-cyan-300",
+            Domain.Enums.ServiceCategory.AcademicSystems => "bg-indigo-50 text-indigo-800 border-2 border-indigo-300",
+            Domain.Enums.ServiceCategory.Hardware => "bg-orange-50 text-orange-800 border-2 border-orange-300",
+            Domain.Enums.ServiceCategory.Software => "bg-pink-50 text-pink-800 border-2 border-pink-300",
+            Domain.Enums.ServiceCategory.Other => "bg-gray-50 text-gray-800 border-2 border-gray-300",
+            _ => "bg-blue-50 text-blue-800 border-2 border-blue-300"
+        };
+    }
+
+    private string GetCategoryDotClass(Domain.Enums.ServiceCategory category)
+    {
+        return category switch
+        {
+            Domain.Enums.ServiceCategory.Email => "bg-purple-500",
+            Domain.Enums.ServiceCategory.Network => "bg-cyan-500",
+            Domain.Enums.ServiceCategory.AcademicSystems => "bg-indigo-500",
+            Domain.Enums.ServiceCategory.Hardware => "bg-orange-500",
+            Domain.Enums.ServiceCategory.Software => "bg-pink-500",
+            Domain.Enums.ServiceCategory.Other => "bg-gray-500",
+            _ => "bg-blue-500"
+        };
+    }
+
+    private string GetCategoryBackgroundClass(Domain.Enums.ServiceCategory category)
+    {
+        return category switch
+        {
+            Domain.Enums.ServiceCategory.Email => "bg-gradient-to-br from-purple-100 to-purple-200",
+            Domain.Enums.ServiceCategory.Network => "bg-gradient-to-br from-cyan-100 to-cyan-200",
+            Domain.Enums.ServiceCategory.AcademicSystems => "bg-gradient-to-br from-indigo-100 to-indigo-200",
+            Domain.Enums.ServiceCategory.Hardware => "bg-gradient-to-br from-orange-100 to-orange-200",
+            Domain.Enums.ServiceCategory.Software => "bg-gradient-to-br from-pink-100 to-pink-200",
+            Domain.Enums.ServiceCategory.Other => "bg-gradient-to-br from-gray-100 to-gray-200",
+            _ => "bg-gradient-to-br from-blue-100 to-blue-200"
+        };
+    }
+
+    private Microsoft.AspNetCore.Components.MarkupString GetCategoryIcon(Domain.Enums.ServiceCategory category)
+    {
+        var iconSvg = category switch
+        {
+            Domain.Enums.ServiceCategory.Email => @"<svg class=""w-6 h-6 text-purple-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"" /></svg>",
+            Domain.Enums.ServiceCategory.Network => @"<svg class=""w-6 h-6 text-cyan-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"" /></svg>",
+            Domain.Enums.ServiceCategory.AcademicSystems => @"<svg class=""w-6 h-6 text-indigo-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"" /></svg>",
+            Domain.Enums.ServiceCategory.Hardware => @"<svg class=""w-6 h-6 text-orange-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"" /></svg>",
+            Domain.Enums.ServiceCategory.Software => @"<svg class=""w-6 h-6 text-pink-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"" /></svg>",
+            Domain.Enums.ServiceCategory.Other => @"<svg class=""w-6 h-6 text-gray-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"" /></svg>",
+            _ => @"<svg class=""w-6 h-6 text-blue-600"" fill=""none"" stroke=""currentColor"" viewBox=""0 0 24 24""><path stroke-linecap=""round"" stroke-linejoin=""round"" stroke-width=""2"" d=""M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"" /></svg>"
+        };
+        return new Microsoft.AspNetCore.Components.MarkupString(iconSvg);
+    }
+}
