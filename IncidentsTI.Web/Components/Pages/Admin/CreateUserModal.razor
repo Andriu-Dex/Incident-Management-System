@@ -5,7 +5,7 @@
 @inject IMediator Mediator
 @inject IToastService ToastService
 
-<div class="p-6">
+<div class="p-6 mt-4">
     <EditForm Model="@createUserDto" OnValidSubmit="@HandleCreateUser">
         <DataAnnotationsValidator />
         
@@ -69,7 +69,8 @@
 </div>
 
 @code {
-    [CascadingParameter] BlazoredModalInstance ModalInstance { get; set; } = default!;
+    [Parameter] public EventCallback OnUserCreated { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
 
     private CreateUserDto createUserDto = new();
     private bool isLoading = false;
@@ -95,7 +96,8 @@
             if (result != null)
             {
                 ToastService.ShowSuccess("Usuario creado exitosamente");
-                await ModalInstance.CloseAsync(ModalResult.Ok(result));
+                createUserDto = new(); // Reset form
+                await OnUserCreated.InvokeAsync();
             }
             else
             {
@@ -114,6 +116,7 @@
 
     private async Task Cancel()
     {
-        await ModalInstance.CancelAsync();
+        createUserDto = new(); // Reset form
+        await OnCancel.InvokeAsync();
     }
 }

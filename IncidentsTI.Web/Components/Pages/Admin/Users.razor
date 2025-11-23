@@ -7,14 +7,13 @@
 @using MediatR
 @inject IMediator Mediator
 @inject IToastService ToastService
-@inject IModalService Modal
 
 <PageTitle>Gestión de Usuarios</PageTitle>
 
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
-        <button @onclick="OpenCreateUserModal" class="btn btn-primary">
+        <button type="button" @onclick="OpenCreateUserModal" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
@@ -119,9 +118,25 @@
     }
 </div>
 
+@if (showModal)
+{
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 9999;" @onclick="CloseModal">
+        <div style="position: relative; top: 100px; max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" @onclick:stopPropagation="true">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
+                <h3 style="font-size: 1.25rem; font-weight: 600;">Crear Nuevo Usuario</h3>
+                <button type="button" @onclick="CloseModal" style="color: #9ca3af; cursor: pointer; background: none; border: none; font-size: 24px; padding: 0; width: 32px; height: 32px;">
+                    ×
+                </button>
+            </div>
+            <CreateUserModal OnUserCreated="HandleUserCreated" OnCancel="CloseModal" />
+        </div>
+    </div>
+}
+
 @code {
     private List<UserDto> users = new();
     private bool isLoading = true;
+    private bool showModal = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -169,28 +184,20 @@
         }
     }
 
-    private async Task OpenCreateUserModal()
+    private void OpenCreateUserModal()
     {
-        try
-        {
-            var parameters = new ModalParameters();
-            var options = new ModalOptions
-            {
-                Size = ModalSize.Large
-            };
-            
-            var modal = Modal.Show<CreateUserModal>("Crear Nuevo Usuario", parameters, options);
-            var result = await modal.Result;
-            
-            if (!result.Cancelled)
-            {
-                await LoadUsers();
-            }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Error al abrir modal: {ex.Message}");
-        }
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task HandleUserCreated()
+    {
+        showModal = false;
+        await LoadUsers();
     }
 
     private string GetInitials(string firstName, string lastName)
