@@ -1,7 +1,5 @@
 # Phase 1 - Autenticación y Gestión de Usuarios
 
-## ✅ Completado
-
 Esta fase implementa el sistema completo de autenticación y gestión de usuarios con las siguientes características:
 
 ### Funcionalidades Implementadas
