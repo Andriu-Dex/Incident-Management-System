@@ -29,4 +29,8 @@ public class Incident
     // Timestamps
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    
+    // Colecciones de navegación para trazabilidad
+    public ICollection<IncidentHistory> History { get; set; } = new List<IncidentHistory>();
+    public ICollection<IncidentComment> Comments { get; set; } = new List<IncidentComment>();
 }

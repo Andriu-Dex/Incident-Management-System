@@ -1,3 +1,4 @@
+using IncidentsTI.Application.Services;
 using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Interfaces;
 using IncidentsTI.Infrastructure.Data;
@@ -63,6 +64,11 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
             builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
+            builder.Services.AddScoped<IIncidentHistoryRepository, IncidentHistoryRepository>();
+            builder.Services.AddScoped<IIncidentCommentRepository, IncidentCommentRepository>();
+            
+            // Register Application Services
+            builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
 
             // Configure MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(

@@ -7,10 +7,13 @@
 @using IncidentsTI.Domain.Enums
 @using MediatR
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 @attribute [Authorize(Roles = "Administrator")]
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IToastService ToastService
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>Gestión de Incidentes - Sistema de Incidentes TI</PageTitle>
@@ -357,6 +360,7 @@
     private List<IncidentListDto> filteredIncidents = new();
     private List<UserDto> technicians = new();
     private List<ServiceDto> services = new();
+    private string? currentUserId;
     
     private string statusFilter = "";
     private string priorityFilter = "";
@@ -376,6 +380,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
         await LoadData();
         await LoadServices();
     }
@@ -408,7 +415,7 @@
 
     private async Task SaveChanges()
     {
-        if (selectedIncident == null) return;
+        if (selectedIncident == null || string.IsNullOrEmpty(currentUserId)) return;
 
         try
         {
@@ -420,7 +427,8 @@
                 var serviceCommand = new UpdateIncidentServiceCommand
                 {
                     IncidentId = selectedIncident.Id,
-                    NewServiceId = editServiceId
+                    NewServiceId = editServiceId,
+                    UserId = currentUserId
                 };
                 await Mediator.Send(serviceCommand);
                 hasChanges = true;
@@ -432,7 +440,8 @@
                 var typeCommand = new UpdateIncidentTypeCommand
                 {
                     IncidentId = selectedIncident.Id,
-                    NewType = editType
+                    NewType = editType,
+                    UserId = currentUserId
                 };
                 await Mediator.Send(typeCommand);
                 hasChanges = true;
@@ -444,7 +453,8 @@
                 var priorityCommand = new UpdateIncidentPriorityCommand
                 {
                     IncidentId = selectedIncident.Id,
-                    NewPriority = editPriority
+                    NewPriority = editPriority,
+                    UserId = currentUserId
                 };
                 await Mediator.Send(priorityCommand);
                 hasChanges = true;
@@ -579,7 +589,8 @@
                 var command = new AssignIncidentCommand
                 {
                     IncidentId = incidentId,
-                    AssignedToId = ""
+                    AssignedToId = "",
+                    UserId = currentUserId ?? string.Empty
                 };
                 await Mediator.Send(command);
                 ToastService.ShowSuccess("Incidente desasignado");
@@ -589,7 +600,8 @@
                 var command = new AssignIncidentCommand
                 {
                     IncidentId = incidentId,
-                    AssignedToId = technicianId
+                    AssignedToId = technicianId,
+                    UserId = currentUserId ?? string.Empty
                 };
                 await Mediator.Send(command);
                 ToastService.ShowSuccess("Técnico asignado");

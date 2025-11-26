@@ -17,4 +17,9 @@ public interface IUserRepository
     Task<bool> DeleteAsync(string userId);
     Task<bool> AddToRoleAsync(ApplicationUser user, string roleName);
     Task<IList<string>> GetUserRolesAsync(ApplicationUser user);
+    
+    /// <summary>
+    /// Obtiene el rol principal de un usuario por su ID
+    /// </summary>
+    Task<string?> GetUserRoleAsync(string userId);
 }

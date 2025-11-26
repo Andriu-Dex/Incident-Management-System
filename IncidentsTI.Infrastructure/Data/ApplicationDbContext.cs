@@ -17,6 +17,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Service> Services { get; set; }
     public DbSet<Incident> Incidents { get; set; }
+    public DbSet<IncidentHistory> IncidentHistories { get; set; }
+    public DbSet<IncidentComment> IncidentComments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +29,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // Configure Incident relationships
         ConfigureIncidentRelationships(modelBuilder);
+        
+        // Configure IncidentHistory relationships
+        ConfigureIncidentHistoryRelationships(modelBuilder);
+        
+        // Configure IncidentComment relationships
+        ConfigureIncidentCommentRelationships(modelBuilder);
 
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -69,6 +77,54 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<Incident>()
             .HasIndex(i => i.Status);
+    }
+
+    private void ConfigureIncidentHistoryRelationships(ModelBuilder modelBuilder)
+    {
+        // IncidentHistory -> Incident
+        modelBuilder.Entity<IncidentHistory>()
+            .HasOne(h => h.Incident)
+            .WithMany(i => i.History)
+            .HasForeignKey(h => h.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentHistory -> User
+        modelBuilder.Entity<IncidentHistory>()
+            .HasOne(h => h.User)
+            .WithMany()
+            .HasForeignKey(h => h.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes for better query performance
+        modelBuilder.Entity<IncidentHistory>()
+            .HasIndex(h => h.IncidentId);
+
+        modelBuilder.Entity<IncidentHistory>()
+            .HasIndex(h => h.Timestamp);
+    }
+
+    private void ConfigureIncidentCommentRelationships(ModelBuilder modelBuilder)
+    {
+        // IncidentComment -> Incident
+        modelBuilder.Entity<IncidentComment>()
+            .HasOne(c => c.Incident)
+            .WithMany(i => i.Comments)
+            .HasForeignKey(c => c.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentComment -> User
+        modelBuilder.Entity<IncidentComment>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes for better query performance
+        modelBuilder.Entity<IncidentComment>()
+            .HasIndex(c => c.IncidentId);
+
+        modelBuilder.Entity<IncidentComment>()
+            .HasIndex(c => c.CreatedAt);
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)

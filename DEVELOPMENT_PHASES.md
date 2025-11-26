@@ -616,5 +616,4 @@ Si el tiempo es limitado, estas son las fases **obligatorias**:
 3. ✅ Fase 6 (Base de Conocimiento - requerimiento obligatorio)
 4. ✅ Fase 7 (Notificaciones - requerimiento obligatorio)
 
-Las fases 5, 8, 9, 10 pueden ajustarse según el tiempo disponible.
 

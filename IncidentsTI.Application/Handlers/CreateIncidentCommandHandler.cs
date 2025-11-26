@@ -1,5 +1,6 @@
 using IncidentsTI.Application.Commands;
 using IncidentsTI.Application.DTOs;
+using IncidentsTI.Application.Services;
 using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Interfaces;
 using MediatR;
@@ -12,15 +13,18 @@ public class CreateIncidentCommandHandler : IRequestHandler<CreateIncidentComman
     private readonly IIncidentRepository _incidentRepository;
     private readonly IServiceRepository _serviceRepository;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IIncidentHistoryService _historyService;
 
     public CreateIncidentCommandHandler(
         IIncidentRepository incidentRepository,
         IServiceRepository serviceRepository,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IIncidentHistoryService historyService)
     {
         _incidentRepository = incidentRepository;
         _serviceRepository = serviceRepository;
         _userManager = userManager;
+        _historyService = historyService;
     }
 
     public async Task<IncidentDto> Handle(CreateIncidentCommand request, CancellationToken cancellationToken)
@@ -43,6 +47,9 @@ public class CreateIncidentCommandHandler : IRequestHandler<CreateIncidentComman
         };
 
         var createdIncident = await _incidentRepository.AddAsync(incident);
+        
+        // Registrar en el historial
+        await _historyService.RecordCreation(createdIncident.Id, request.UserId);
         
         // Cargar relaciones para el DTO
         var user = await _userManager.FindByIdAsync(createdIncident.UserId);
