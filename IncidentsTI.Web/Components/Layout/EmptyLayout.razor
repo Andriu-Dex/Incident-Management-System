@@ -1,5 +1,4 @@
 @inherits LayoutComponentBase
-@using Blazored.Toast.Configuration
 
 <div class="min-h-screen bg-gray-50">
     @Body
@@ -7,13 +6,7 @@
 
 <script src="/js/auth.js"></script>
 
-<BlazoredToasts Position="ToastPosition.TopRight" 
-                Timeout="5" 
-                IconType="IconType.FontAwesome" 
-                SuccessClass="bg-success text-white" 
-                ErrorClass="bg-error text-white" 
-                InfoClass="bg-info text-white" 
-                WarningClass="bg-warning text-white" />
+<ToastContainer />
 
 <div id="blazor-error-ui" class="bg-error text-white p-4 fixed bottom-0 left-0 right-0 z-50">
     Ha ocurrido un error inesperado.

@@ -15,5 +15,6 @@ public interface IIncidentRepository
     Task<IEnumerable<Incident>> GetByPriorityAsync(IncidentPriority priority);
     Task<Incident> AddAsync(Incident incident);
     Task UpdateAsync(Incident incident);
+    Task<bool> DeleteAsync(int id);
     Task<string> GetLastTicketNumberAsync();
 }

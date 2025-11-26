@@ -14,6 +14,7 @@ public interface IUserRepository
     Task<ApplicationUser> CreateAsync(ApplicationUser user, string password);
     Task<bool> UpdateAsync(ApplicationUser user);
     Task<bool> ToggleActiveStatusAsync(string userId);
+    Task<bool> DeleteAsync(string userId);
     Task<bool> AddToRoleAsync(ApplicationUser user, string roleName);
     Task<IList<string>> GetUserRolesAsync(ApplicationUser user);
 }

@@ -70,6 +70,15 @@ public class UserRepository : IUserRepository
         return await UpdateAsync(user);
     }
 
+    public async Task<bool> DeleteAsync(string userId)
+    {
+        var user = await GetByIdAsync(userId);
+        if (user == null) return false;
+
+        var result = await _userManager.DeleteAsync(user);
+        return result.Succeeded;
+    }
+
     public async Task<bool> AddToRoleAsync(ApplicationUser user, string roleName)
     {
         var result = await _userManager.AddToRoleAsync(user, roleName);

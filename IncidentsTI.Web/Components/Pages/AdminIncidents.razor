@@ -19,11 +19,27 @@
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
-            <div class="flex items-center gap-3 mb-2">
-                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-                <h1 class="text-3xl font-bold text-gray-900">Gestión de Incidentes</h1>
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    <h1 class="text-3xl font-bold text-gray-900">Gestión de Incidentes</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Super Admin Toggle -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-gray-600">Super Admin</span>
+                        <button @onclick="ToggleSuperAdminMode" 
+                                class="@(superAdminMode ? "bg-yellow-500" : "bg-gray-300") relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                            <span class="@(superAdminMode ? "translate-x-7" : "translate-x-1") inline-flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md transition-transform duration-200">
+                                <svg class="w-4 h-4 @(superAdminMode ? "text-yellow-500" : "text-gray-400")" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
             </div>
             <p class="text-gray-600">Administra todos los incidentes del sistema</p>
         </div>
@@ -145,13 +161,24 @@
                                     </select>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <button @onclick="() => ViewDetail(incident.Id)" class="text-blue-600 hover:text-blue-800 font-semibold text-xs inline-flex items-center gap-1">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                        Ver
-                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <button @onclick="() => ViewDetail(incident.Id)" class="text-blue-600 hover:text-blue-800 font-semibold text-xs inline-flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                            Ver
+                                        </button>
+                                        @if (superAdminMode)
+                                        {
+                                            <button @onclick="() => ConfirmDeleteIncident(incident)" class="text-red-600 hover:text-red-800 font-semibold text-xs inline-flex items-center gap-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Eliminar
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -161,13 +188,43 @@
             else
             {
                 <div class="p-12 text-center">
-                    <div class="text-6xl mb-4">📭</div>
+                    <svg class="w-24 h-24 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
                     <p class="text-gray-500 text-lg font-medium">No hay incidentes para mostrar</p>
                 </div>
             }
         </div>
     </div>
 </div>
+
+<!-- Modal de Confirmación de Eliminación -->
+@if (showDeleteModal && incidentToDelete != null)
+{
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 9999;" @onclick="CloseDeleteModal">
+        <div style="position: relative; top: 150px; max-width: 450px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" @onclick:stopPropagation="true">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+                    <svg class="h-7 w-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Eliminar Incidente</h3>
+                <p class="text-gray-600 mb-6">
+                    ¿Estás seguro de que deseas eliminar el ticket <strong class="text-blue-600">@incidentToDelete.TicketNumber</strong>? Esta acción no se puede deshacer.
+                </p>
+                <div class="flex justify-center gap-3">
+                    <button @onclick="CloseDeleteModal" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold transition-all duration-200">
+                        Cancelar
+                    </button>
+                    <button @onclick="DeleteIncident" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-all duration-200">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<IncidentListDto> incidents = new();
@@ -177,10 +234,72 @@
     private string statusFilter = "";
     private string priorityFilter = "";
     private string assignmentFilter = "";
+    
+    // Super Admin Mode
+    private bool superAdminMode = false;
+    private bool showDeleteModal = false;
+    private IncidentListDto? incidentToDelete;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+    }
+
+    private async Task ToggleSuperAdminMode()
+    {
+        superAdminMode = !superAdminMode;
+        
+        await InvokeAsync(() =>
+        {
+            if (superAdminMode)
+            {
+                ToastService.ShowWarning("Modo Super Admin Activado");
+            }
+            else
+            {
+                ToastService.ShowInfo("Modo Super Admin Desactivado");
+            }
+            StateHasChanged();
+        });
+    }
+
+    private void ConfirmDeleteIncident(IncidentListDto incident)
+    {
+        incidentToDelete = incident;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        incidentToDelete = null;
+    }
+
+    private async Task DeleteIncident()
+    {
+        if (incidentToDelete == null) return;
+
+        try
+        {
+            var command = new DeleteIncidentCommand { IncidentId = incidentToDelete.Id };
+            var result = await Mediator.Send(command);
+
+            if (result)
+            {
+                ToastService.ShowSuccess($"Ticket {incidentToDelete.TicketNumber} eliminado");
+                CloseDeleteModal();
+                await LoadData();
+                ApplyFilters();
+            }
+            else
+            {
+                ToastService.ShowError("No se pudo eliminar el incidente");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
     }
 
     private async Task LoadData()

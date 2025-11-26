@@ -113,6 +113,16 @@ public class IncidentRepository : IIncidentRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var incident = await _context.Incidents.FindAsync(id);
+        if (incident == null) return false;
+
+        _context.Incidents.Remove(incident);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<string> GetLastTicketNumberAsync()
     {
         var lastIncident = await _context.Incidents
