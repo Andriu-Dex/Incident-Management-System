@@ -392,3 +392,13 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .idea/
+
+# Archivos CSS generados automáticamente
+app.min.css
+app.css
+public/css/
+wwwroot/css/
+dist/
+build/
+*.min.css
+*.min.js
