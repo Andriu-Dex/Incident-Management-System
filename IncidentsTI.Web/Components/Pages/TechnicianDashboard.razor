@@ -8,10 +8,13 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @attribute [Authorize(Roles = "Technician,Administrator")]
+@attribute [StreamRendering(false)]
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject IToastService ToastService
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
+@implements IDisposable
 
 <PageTitle>Dashboard Técnico - Sistema de Incidentes TI</PageTitle>
 
@@ -120,30 +123,46 @@
 </div>
 
 @code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationState { get; set; }
-
     private List<IncidentListDto> incidents = new();
     private string? currentUserId;
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthenticationState != null)
-        {
-            var authState = await AuthenticationState;
-            currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        }
-
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        Console.WriteLine($"TechnicianDashboard - UserId: {currentUserId}");
+        
+        Navigation.LocationChanged += OnLocationChanged;
         await LoadIncidents();
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (e.Location.Contains("/technician/dashboard"))
+        {
+            await LoadIncidents();
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task LoadIncidents()
     {
         if (string.IsNullOrEmpty(currentUserId))
+        {
+            Console.WriteLine("TechnicianDashboard - currentUserId está vacío");
             return;
+        }
 
+        Console.WriteLine($"TechnicianDashboard - Buscando incidentes para userId: {currentUserId}");
         var query = new GetAssignedIncidentsQuery { AssignedToId = currentUserId };
         incidents = (await Mediator.Send(query)).ToList();
+        Console.WriteLine($"TechnicianDashboard - Incidentes encontrados: {incidents.Count}");
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 
     private async Task UpdateStatus(int incidentId, ChangeEventArgs e)

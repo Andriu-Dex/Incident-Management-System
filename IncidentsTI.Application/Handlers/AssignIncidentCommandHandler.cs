@@ -20,7 +20,8 @@ public class AssignIncidentCommandHandler : IRequestHandler<AssignIncidentComman
         if (incident == null)
             return false;
 
-        incident.AssignedToId = request.AssignedToId;
+        // Si AssignedToId está vacío, guardarlo como null para desasignar correctamente
+        incident.AssignedToId = string.IsNullOrEmpty(request.AssignedToId) ? null : request.AssignedToId;
         incident.UpdatedAt = DateTime.UtcNow;
 
         await _incidentRepository.UpdateAsync(incident);
