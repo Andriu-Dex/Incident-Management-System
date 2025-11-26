@@ -50,6 +50,7 @@ public class GetAssignedIncidentsQueryHandler : IRequestHandler<GetAssignedIncid
                 Priority = incident.Priority,
                 PriorityName = GetPriorityName(incident.Priority),
                 UserName = user != null ? $"{user.FirstName} {user.LastName}" : "",
+                AssignedToId = incident.AssignedToId,
                 AssignedToName = assignedTo != null ? $"{assignedTo.FirstName} {assignedTo.LastName}" : null,
                 CreatedAt = incident.CreatedAt
             });

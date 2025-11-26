@@ -13,6 +13,7 @@ public class IncidentListDto
     public IncidentPriority Priority { get; set; }
     public string PriorityName { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
+    public string? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
     public DateTime CreatedAt { get; set; }
 }

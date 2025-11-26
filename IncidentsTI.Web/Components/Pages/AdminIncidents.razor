@@ -85,8 +85,11 @@
                     </select>
                 </div>
                 <div class="flex items-end">
-                    <button @onclick="ClearFilters" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-semibold">
-                        🔄 Limpiar
+                    <button @onclick="ClearFilters" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-semibold flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Limpiar
                     </button>
                 </div>
             </div>
@@ -133,7 +136,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <select value="@incident.AssignedToName" @onchange="(e) => AssignTechnician(incident.Id, e)" class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500">
+                                    <select value="@(string.IsNullOrEmpty(incident.AssignedToId) ? "" : incident.AssignedToId)" @onchange="(e) => AssignTechnician(incident.Id, e)" class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500">
                                         <option value="">-- Sin asignar --</option>
                                         @foreach (var tech in technicians)
                                         {
@@ -142,8 +145,12 @@
                                     </select>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <button @onclick="() => ViewDetail(incident.Id)" class="text-blue-600 hover:text-blue-800 font-semibold text-xs">
-                                        👁️ Ver
+                                    <button @onclick="() => ViewDetail(incident.Id)" class="text-blue-600 hover:text-blue-800 font-semibold text-xs inline-flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        Ver
                                     </button>
                                 </td>
                             </tr>
@@ -236,7 +243,7 @@
                     AssignedToId = ""
                 };
                 await Mediator.Send(command);
-                ToastService.ShowSuccess("✓ Incidente desasignado");
+                ToastService.ShowSuccess("Incidente desasignado");
             }
             else
             {
@@ -246,7 +253,7 @@
                     AssignedToId = technicianId
                 };
                 await Mediator.Send(command);
-                ToastService.ShowSuccess("✓ Técnico asignado");
+                ToastService.ShowSuccess("Técnico asignado");
             }
 
             await LoadData();

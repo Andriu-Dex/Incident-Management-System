@@ -42,11 +42,16 @@ else
                         </div>
                         <p class="text-gray-600">@incident.Title</p>
                     </div>
-                    <div class="text-right">
-                        <span class="@GetStatusBadgeClass(incident.Status)">
-                            @incident.StatusName
-                        </span>
-                        <div class="mt-2">
+                    <!-- Status & Priority Badges - Aligned right with flex column -->
+                    <div class="flex flex-col items-end gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Estado:</span>
+                            <span class="@GetStatusBadgeClass(incident.Status)">
+                                @incident.StatusName
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Prioridad:</span>
                             <span class="@GetPriorityBadgeClass(incident.Priority)">
                                 @incident.PriorityName
                             </span>
