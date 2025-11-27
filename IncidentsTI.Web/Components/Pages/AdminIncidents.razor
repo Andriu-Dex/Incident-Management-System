@@ -337,6 +337,116 @@
                         <div class="font-medium text-gray-900">@selectedIncident.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
                     </div>
                 </div>
+
+                <!-- Sección de Comentarios (Acordeón) -->
+                <div class="border-t border-gray-200 pt-4">
+                    <button @onclick="() => commentsExpanded = !commentsExpanded" class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                            </svg>
+                            <h4 class="text-lg font-bold text-gray-900">Comentarios</h4>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">@incidentComments.Count</span>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-500 transition-transform duration-200 @(commentsExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    @if (commentsExpanded)
+                    {
+                        <div class="mt-4">
+                            <!-- Formulario para agregar comentario -->
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
+                                <textarea @bind="newComment" placeholder="Escribe un comentario..." rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"></textarea>
+                                <div class="flex items-center justify-between mt-3">
+                                    <label class="flex items-center gap-2 text-sm text-gray-600">
+                                        <input type="checkbox" @bind="isInternalComment" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                        <span>Comentario interno (solo visible para TI)</span>
+                                    </label>
+                                    <button @onclick="AddComment" disabled="@string.IsNullOrWhiteSpace(newComment)" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-semibold transition-all duration-200">
+                                        Agregar Comentario
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Lista de comentarios -->
+                            @if (incidentComments.Any())
+                            {
+                                <div class="space-y-3 max-h-48 overflow-y-auto">
+                                    @foreach (var comment in incidentComments.OrderByDescending(c => c.CreatedAt))
+                                    {
+                                        <div class="@(comment.IsInternal ? "bg-yellow-50 border-yellow-200" : "bg-white border-gray-200") rounded-lg p-3 border">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-semibold text-sm text-gray-900">@comment.UserName</span>
+                                                    @if (comment.IsInternal)
+                                                    {
+                                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-200 text-yellow-800">Interno</span>
+                                                    }
+                                                </div>
+                                                <span class="text-xs text-gray-500">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            <p class="text-sm text-gray-700 whitespace-pre-wrap">@comment.Content</p>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-gray-500 text-center py-4">No hay comentarios aún</p>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Sección de Historial (Acordeón) -->
+                <div class="border-t border-gray-200 pt-4">
+                    <button @onclick="() => historyExpanded = !historyExpanded" class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <h4 class="text-lg font-bold text-gray-900">Historial de Cambios</h4>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">@incidentHistory.Count</span>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-500 transition-transform duration-200 @(historyExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    @if (historyExpanded)
+                    {
+                        @if (incidentHistory.Any())
+                        {
+                            <div class="relative max-h-64 overflow-y-auto mt-4">
+                                <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                                <div class="space-y-4">
+                                    @foreach (var history in incidentHistory.OrderByDescending(h => h.Timestamp))
+                                    {
+                                        <div class="relative pl-10">
+                                            <div class="absolute left-2 w-4 h-4 rounded-full @GetHistoryIconColor(history.Action) flex items-center justify-center">
+                                                <div class="w-2 h-2 rounded-full bg-white"></div>
+                                            </div>
+                                            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="text-xs font-semibold @GetHistoryTextColor(history.Action)">@GetHistoryActionName(history.Action)</span>
+                                                    <span class="text-xs text-gray-500">@history.Timestamp.ToString("dd/MM/yyyy HH:mm")</span>
+                                                </div>
+                                                <p class="text-sm text-gray-700">@history.Description</p>
+                                                <p class="text-xs text-gray-500 mt-1">Por: @history.UserName</p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-sm text-gray-500 text-center py-4 mt-4">No hay historial disponible</p>
+                        }
+                    }
+                </div>
             </div>
 
             <!-- Footer del Modal -->
@@ -377,6 +487,14 @@
     private int editServiceId;
     private IncidentType editType;
     private IncidentPriority editPriority;
+    
+    // Historial y Comentarios
+    private List<IncidentHistoryDto> incidentHistory = new();
+    private List<IncidentCommentDto> incidentComments = new();
+    private string newComment = "";
+    private bool isInternalComment = false;
+    private bool commentsExpanded = false;
+    private bool historyExpanded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -403,7 +521,51 @@
             editServiceId = selectedIncident.ServiceId;
             editType = selectedIncident.Type;
             editPriority = selectedIncident.Priority;
+            
+            // Cargar historial y comentarios
+            await LoadIncidentHistory(incidentId);
+            await LoadIncidentComments(incidentId);
+            
             showDetailModal = true;
+        }
+    }
+
+    private async Task LoadIncidentHistory(int incidentId)
+    {
+        var historyQuery = new GetIncidentHistoryQuery(incidentId);
+        incidentHistory = (await Mediator.Send(historyQuery)).ToList();
+    }
+
+    private async Task LoadIncidentComments(int incidentId)
+    {
+        var commentsQuery = new GetIncidentCommentsQuery(incidentId, true);
+        incidentComments = (await Mediator.Send(commentsQuery)).ToList();
+    }
+
+    private async Task AddComment()
+    {
+        if (selectedIncident == null || string.IsNullOrWhiteSpace(newComment) || string.IsNullOrEmpty(currentUserId)) return;
+
+        try
+        {
+            var command = new AddCommentCommand
+            {
+                IncidentId = selectedIncident.Id,
+                Content = newComment,
+                UserId = currentUserId,
+                IsInternal = isInternalComment
+            };
+
+            await Mediator.Send(command);
+            ToastService.ShowSuccess("Comentario agregado");
+            
+            newComment = "";
+            isInternalComment = false;
+            await LoadIncidentComments(selectedIncident.Id);
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
         }
     }
 
@@ -411,6 +573,12 @@
     {
         showDetailModal = false;
         selectedIncident = null;
+        incidentHistory = new();
+        incidentComments = new();
+        newComment = "";
+        isInternalComment = false;
+        commentsExpanded = false;
+        historyExpanded = false;
     }
 
     private async Task SaveChanges()
@@ -638,6 +806,60 @@
             IncidentPriority.High => "px-2 py-1 font-semibold rounded-full bg-orange-100 text-orange-800 border border-orange-300",
             IncidentPriority.Critical => "px-2 py-1 font-semibold rounded-full bg-red-100 text-red-800 border border-red-300",
             _ => "px-2 py-1 font-semibold rounded-full bg-gray-100 text-gray-800"
+        };
+    }
+
+    private string GetHistoryIconColor(HistoryAction action)
+    {
+        return action switch
+        {
+            HistoryAction.Created => "bg-green-500",
+            HistoryAction.StatusChanged => "bg-blue-500",
+            HistoryAction.PriorityChanged => "bg-orange-500",
+            HistoryAction.Assigned => "bg-purple-500",
+            HistoryAction.Reassigned => "bg-gray-500",
+            HistoryAction.ServiceChanged => "bg-teal-500",
+            HistoryAction.TypeChanged => "bg-indigo-500",
+            HistoryAction.CommentAdded => "bg-cyan-500",
+            HistoryAction.Escalated => "bg-red-500",
+            HistoryAction.DetailsUpdated => "bg-amber-500",
+            _ => "bg-gray-400"
+        };
+    }
+
+    private string GetHistoryTextColor(HistoryAction action)
+    {
+        return action switch
+        {
+            HistoryAction.Created => "text-green-600",
+            HistoryAction.StatusChanged => "text-blue-600",
+            HistoryAction.PriorityChanged => "text-orange-600",
+            HistoryAction.Assigned => "text-purple-600",
+            HistoryAction.Reassigned => "text-gray-600",
+            HistoryAction.ServiceChanged => "text-teal-600",
+            HistoryAction.TypeChanged => "text-indigo-600",
+            HistoryAction.CommentAdded => "text-cyan-600",
+            HistoryAction.Escalated => "text-red-600",
+            HistoryAction.DetailsUpdated => "text-amber-600",
+            _ => "text-gray-600"
+        };
+    }
+
+    private string GetHistoryActionName(HistoryAction action)
+    {
+        return action switch
+        {
+            HistoryAction.Created => "Creado",
+            HistoryAction.StatusChanged => "Estado Cambiado",
+            HistoryAction.PriorityChanged => "Prioridad Cambiada",
+            HistoryAction.Assigned => "Asignado",
+            HistoryAction.Reassigned => "Reasignado",
+            HistoryAction.ServiceChanged => "Servicio Cambiado",
+            HistoryAction.TypeChanged => "Tipo Cambiado",
+            HistoryAction.CommentAdded => "Comentario Agregado",
+            HistoryAction.Escalated => "Escalado",
+            HistoryAction.DetailsUpdated => "Detalles Actualizados",
+            _ => "Acción"
         };
     }
 }
