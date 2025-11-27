@@ -160,13 +160,13 @@ else
                         <div class="space-y-2 text-sm">
                             <div>
                                 <div class="text-gray-600">Creado</div>
-                                <div class="font-semibold text-gray-900">@incident.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                                <div class="font-semibold text-gray-900">@FormatLocalDateTime(incident.CreatedAt)</div>
                             </div>
                             @if (incident.UpdatedAt.HasValue)
                             {
                                 <div class="pt-2 border-t border-gray-200">
                                     <div class="text-gray-600">Última actualización</div>
-                                    <div class="font-semibold text-gray-900">@incident.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                                    <div class="font-semibold text-gray-900">@FormatLocalDateTime(incident.UpdatedAt.Value)</div>
                                 </div>
                             }
                         </div>
@@ -283,7 +283,7 @@ else
                                             }
                                         </div>
                                     </div>
-                                    <span class="text-sm text-gray-500">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span class="text-sm text-gray-500">@FormatLocalDateTime(comment.CreatedAt)</span>
                                 </div>
                                 <p class="text-gray-700 whitespace-pre-wrap ml-10">@comment.Content</p>
                             </div>
@@ -326,7 +326,7 @@ else
                                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                         <div class="flex items-center justify-between mb-1">
                                             <span class="font-semibold text-gray-900">@item.UserName</span>
-                                            <span class="text-sm text-gray-500">@item.Timestamp.ToString("dd/MM/yyyy HH:mm")</span>
+                                            <span class="text-sm text-gray-500">@FormatLocalDateTime(item.Timestamp)</span>
                                         </div>
                                         <p class="text-gray-700">@item.FormattedAction</p>
                                         @if (!string.IsNullOrEmpty(item.Description))
@@ -519,5 +519,18 @@ else
             await escalationHistoryRef.RefreshAsync();
         }
         ToastService.ShowSuccess("Incidente escalado correctamente");
+    }
+    
+    // Convierte UTC a hora de Ecuador (UTC-5)
+    private static readonly TimeZoneInfo EcuadorTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+        "Ecuador Time", 
+        TimeSpan.FromHours(-5), 
+        "Ecuador Time", 
+        "Ecuador Time");
+    
+    private string FormatLocalDateTime(DateTime utcDateTime)
+    {
+        var localTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, EcuadorTimeZone);
+        return localTime.ToString("dd/MM/yyyy HH:mm");
     }
 }

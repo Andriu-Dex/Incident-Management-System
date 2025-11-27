@@ -335,7 +335,7 @@
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div class="text-sm font-semibold text-gray-600 mb-1">Fecha de Creación</div>
-                        <div class="font-medium text-gray-900">@selectedIncident.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                        <div class="font-medium text-gray-900">@FormatLocalDateTime(selectedIncident.CreatedAt)</div>
                     </div>
                     <!-- Nivel de Escalamiento -->
                     <div class="@(selectedIncident.CurrentEscalationLevelId.HasValue ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-200") rounded-lg p-4 border">
@@ -414,7 +414,7 @@
                                                         <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-200 text-yellow-800">Interno</span>
                                                     }
                                                 </div>
-                                                <span class="text-xs text-gray-500">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                <span class="text-xs text-gray-500">@FormatLocalDateTime(comment.CreatedAt)</span>
                                             </div>
                                             <p class="text-sm text-gray-700 whitespace-pre-wrap">@comment.Content</p>
                                         </div>
@@ -460,7 +460,7 @@
                                             <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                                                 <div class="flex items-center justify-between mb-1">
                                                     <span class="font-semibold text-sm text-gray-900">@history.UserName</span>
-                                                    <span class="text-xs text-gray-500">@history.Timestamp.ToString("dd/MM/yyyy HH:mm")</span>
+                                                    <span class="text-xs text-gray-500">@FormatLocalDateTime(history.Timestamp)</span>
                                                 </div>
                                                 <p class="text-sm @GetHistoryTextColor(history.Action)">@history.FormattedAction</p>
                                             </div>
@@ -507,10 +507,10 @@
                                             <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
                                                 <div class="flex items-center justify-between mb-1">
                                                     <span class="font-semibold text-sm text-gray-900">@escalation.FromUserName</span>
-                                                    <span class="text-xs text-gray-500">@escalation.EscalatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                    <span class="text-xs text-gray-500">@FormatLocalDateTime(escalation.EscalatedAt)</span>
                                                 </div>
                                                 <div class="flex items-center gap-2 text-sm mb-1">
-                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">@(escalation.FromLevelName ?? "Sin nivel")</span>
+                                                    <span class="bg-orange-100 px-2 py-0.5 rounded text-gray-600">@(escalation.FromLevelName ?? "Sin nivel")</span>
                                                     <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                                                     </svg>
@@ -1015,5 +1015,18 @@
         
         await LoadData();
         ToastService.ShowSuccess("Incidente escalado correctamente");
+    }
+    
+    // Convierte UTC a hora de Ecuador (UTC-5)
+    private static readonly TimeZoneInfo EcuadorTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+        "Ecuador Time", 
+        TimeSpan.FromHours(-5), 
+        "Ecuador Time", 
+        "Ecuador Time");
+    
+    private string FormatLocalDateTime(DateTime utcDateTime)
+    {
+        var localTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, EcuadorTimeZone);
+        return localTime.ToString("dd/MM/yyyy HH:mm");
     }
 }

@@ -38,7 +38,7 @@
                                     <span class="text-orange-600">escaló a</span>
                                     <span class="font-semibold text-orange-700">@escalation.ToLevelName</span>
                                 </div>
-                                <span class="text-sm text-gray-500">@escalation.EscalatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                <span class="text-sm text-gray-500">@FormatLocalDateTime(escalation.EscalatedAt)</span>
                             </div>
                             
                             @if (!string.IsNullOrEmpty(escalation.FromLevelName))
@@ -122,5 +122,18 @@
         {
             isLoading = false;
         }
+    }
+    
+    // Convierte UTC a hora de Ecuador (UTC-5)
+    private static readonly TimeZoneInfo EcuadorTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+        "Ecuador Time", 
+        TimeSpan.FromHours(-5), 
+        "Ecuador Time", 
+        "Ecuador Time");
+    
+    private string FormatLocalDateTime(DateTime utcDateTime)
+    {
+        var localTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, EcuadorTimeZone);
+        return localTime.ToString("dd/MM/yyyy HH:mm");
     }
 }
