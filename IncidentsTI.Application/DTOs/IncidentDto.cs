@@ -37,6 +37,14 @@ public class IncidentDto
     public string? CurrentEscalationLevelName { get; set; }
     public int? CurrentEscalationLevelOrder { get; set; }
     
+    // Datos de resolución
+    public string? ResolutionDescription { get; set; }
+    public string? RootCause { get; set; }
+    public int? ResolutionTimeMinutes { get; set; }
+    public DateTime? ResolvedAt { get; set; }
+    public string? ResolvedById { get; set; }
+    public string? ResolvedByName { get; set; }
+    
     // Timestamps
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

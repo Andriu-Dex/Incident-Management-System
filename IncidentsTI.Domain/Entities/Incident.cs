@@ -30,6 +30,14 @@ public class Incident
     public int? CurrentEscalationLevelId { get; set; }
     public EscalationLevel? CurrentEscalationLevel { get; set; }
     
+    // Datos de resolución
+    public string? ResolutionDescription { get; set; }
+    public string? RootCause { get; set; }
+    public int? ResolutionTimeMinutes { get; set; }
+    public DateTime? ResolvedAt { get; set; }
+    public string? ResolvedById { get; set; }
+    public ApplicationUser? ResolvedBy { get; set; }
+    
     // Timestamps
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

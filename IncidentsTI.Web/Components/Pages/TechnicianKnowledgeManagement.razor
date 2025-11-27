@@ -449,7 +449,7 @@
         // Si viene de un incidente, abrir modal pre-llenado
         if (!string.IsNullOrEmpty(fromIncident) && int.TryParse(fromIncident, out var incidentId))
         {
-            OpenCreateModalFromIncident(incidentId);
+            await OpenCreateModalFromIncident(incidentId);
         }
     }
     
@@ -546,7 +546,7 @@
         showModal = true;
     }
     
-    private void OpenCreateModalFromIncident(int incidentId)
+    private async Task OpenCreateModalFromIncident(int incidentId)
     {
         isEditing = false;
         editingArticleId = null;
@@ -554,29 +554,72 @@
         
         formModel = new ArticleFormModel();
         
-        // Pre-llenar con datos del incidente
-        if (!string.IsNullOrEmpty(title))
+        // Cargar los datos del incidente para pre-llenar el formulario
+        try
         {
-            formModel.Title = Uri.UnescapeDataString(title);
+            var incident = await Mediator.Send(new GetIncidentByIdQuery { Id = incidentId });
+            if (incident != null)
+            {
+                // Pre-llenar título con descripción del incidente
+                formModel.Title = $"Solución: {incident.Title}";
+                formModel.ServiceId = incident.ServiceId;
+                formModel.IncidentType = incident.Type;
+                formModel.ProblemDescription = incident.Description;
+                
+                // Si tiene descripción de resolución, usarla para pre-llenar las recomendaciones
+                if (!string.IsNullOrEmpty(incident.ResolutionDescription))
+                {
+                    formModel.Recommendations = incident.ResolutionDescription;
+                }
+                
+                // Si tiene causa raíz, agregarla al primer paso
+                if (!string.IsNullOrEmpty(incident.RootCause))
+                {
+                    formModel.Steps.Add(new StepFormModel 
+                    { 
+                        StepNumber = 1, 
+                        Title = "Identificación de causa raíz",
+                        Description = incident.RootCause
+                    });
+                }
+                
+                // Si tiene tiempo de resolución, usarlo
+                if (incident.ResolutionTimeMinutes.HasValue)
+                {
+                    formModel.EstimatedResolutionTimeMinutes = incident.ResolutionTimeMinutes.Value;
+                }
+            }
+        }
+        catch
+        {
+            // Si falla al cargar el incidente, usar los parámetros de URL como fallback
+            if (!string.IsNullOrEmpty(title))
+            {
+                formModel.Title = Uri.UnescapeDataString(title);
+            }
+            
+            if (!string.IsNullOrEmpty(serviceId) && int.TryParse(serviceId, out var svcId))
+            {
+                formModel.ServiceId = svcId;
+            }
+            
+            if (!string.IsNullOrEmpty(type) && Enum.TryParse<IncidentType>(type, out var incidentType))
+            {
+                formModel.IncidentType = incidentType;
+            }
+            
+            if (!string.IsNullOrEmpty(problemDescription))
+            {
+                formModel.ProblemDescription = Uri.UnescapeDataString(problemDescription);
+            }
         }
         
-        if (!string.IsNullOrEmpty(serviceId) && int.TryParse(serviceId, out var svcId))
+        // Si no se agregó ningún paso, iniciar con uno vacío
+        if (formModel.Steps.Count == 0)
         {
-            formModel.ServiceId = svcId;
+            formModel.Steps.Add(new StepFormModel { StepNumber = 1 });
         }
         
-        if (!string.IsNullOrEmpty(type) && Enum.TryParse<IncidentType>(type, out var incidentType))
-        {
-            formModel.IncidentType = incidentType;
-        }
-        
-        if (!string.IsNullOrEmpty(problemDescription))
-        {
-            formModel.ProblemDescription = Uri.UnescapeDataString(problemDescription);
-        }
-        
-        // Iniciar con un paso vacío
-        formModel.Steps.Add(new StepFormModel { StepNumber = 1 });
         showModal = true;
         
         // Limpiar los parámetros de la URL para que no se vuelva a abrir al navegar

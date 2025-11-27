@@ -7,6 +7,7 @@ public class IncidentListDto
     public int Id { get; set; }
     public string TicketNumber { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
+    public int ServiceId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public IncidentType Type { get; set; }
     public string TypeName { get; set; } = string.Empty;
@@ -18,4 +19,5 @@ public class IncidentListDto
     public string? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool HasLinkedArticles { get; set; }
 }

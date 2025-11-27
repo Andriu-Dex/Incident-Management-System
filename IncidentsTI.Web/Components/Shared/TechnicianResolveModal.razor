@@ -1,0 +1,864 @@
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.DTOs
+@using IncidentsTI.Application.DTOs.Knowledge
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@inject IMediator Mediator
+@inject IToastService ToastService
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @onclick="Close">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden" @onclick:stopPropagation="true">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-emerald-600">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Resolver Incidente
+                    </h2>
+                    <button @onclick="Close" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-green-100 text-sm mt-1">Documenta cómo resolviste este incidente</p>
+            </div>
+
+            <!-- Resolution Type Selection -->
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <p class="font-medium text-gray-700 mb-3">¿Cómo resolviste el incidente?</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button type="button" 
+                            @onclick="() => SelectResolutionType(true)"
+                            class="@(useExistingArticle ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500" : "border-gray-300 hover:border-gray-400") 
+                                   p-4 rounded-xl border-2 transition-all text-left">
+                        <div class="flex items-center gap-3">
+                            <div class="@(useExistingArticle ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-500") p-3 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-900 block">Usé un artículo existente</span>
+                                <span class="text-sm text-gray-500">Vincular artículo de la base de conocimiento</span>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <button type="button" 
+                            @onclick="() => SelectResolutionType(false)"
+                            class="@(!useExistingArticle ? "border-green-500 bg-green-50 ring-2 ring-green-500" : "border-gray-300 hover:border-gray-400") 
+                                   p-4 rounded-xl border-2 transition-all text-left">
+                        <div class="flex items-center gap-3">
+                            <div class="@(!useExistingArticle ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500") p-3 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-900 block">Crear nuevo artículo KB</span>
+                                <span class="text-sm text-gray-500">Documentar la solución y crear artículo</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="h-[calc(90vh-320px)] min-h-[300px] overflow-y-auto">
+                @if (useExistingArticle)
+                {
+                    <!-- Article Search Section -->
+                    <div class="flex h-full">
+                        <!-- Left Column: Article List -->
+                        <div class="w-1/2 border-r border-gray-200 flex flex-col">
+                            <!-- Search Bar -->
+                            <div class="p-4 border-b border-gray-100">
+                                <div class="relative">
+                                    <input type="text" 
+                                           value="@searchKeyword"
+                                           @oninput="OnSearchInput"
+                                           placeholder="Buscar artículo..."
+                                           class="w-full pl-10 pr-10 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
+                                    <svg class="absolute left-3 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    @if (!string.IsNullOrEmpty(searchKeyword))
+                                    {
+                                        <button @onclick="ClearSearch" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    }
+                                </div>
+                                @if (isSearching)
+                                {
+                                    <div class="flex items-center gap-2 mt-2 text-xs text-indigo-600">
+                                        <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></div>
+                                        Buscando...
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Article List -->
+                            <div class="flex-1 overflow-y-auto">
+                                @if (isLoadingArticles)
+                                {
+                                    <div class="flex justify-center items-center py-12">
+                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                    </div>
+                                }
+                                else if (!articles.Any())
+                                {
+                                    <div class="text-center py-8 px-4 text-gray-500">
+                                        <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p class="font-medium text-sm">No se encontraron artículos</p>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="divide-y divide-gray-100">
+                                        @foreach (var article in articles)
+                                        {
+                                            <div class="@(selectedArticleId == article.Id ? "bg-indigo-50 border-l-4 border-indigo-500" : "hover:bg-gray-50 border-l-4 border-transparent") 
+                                                        p-3 cursor-pointer transition-all"
+                                                 @onclick="() => SelectArticle(article)">
+                                                <div class="flex items-start justify-between gap-2">
+                                                    <div class="flex-1 min-w-0">
+                                                        <h4 class="font-semibold text-gray-900 text-sm truncate">@article.Title</h4>
+                                                        <p class="text-xs text-gray-500 line-clamp-2 mt-0.5">@article.ProblemDescription</p>
+                                                        <div class="flex items-center gap-2 mt-1.5">
+                                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                                                @article.ServiceName
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    @if (selectedArticleId == article.Id)
+                                                    {
+                                                        <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Article Preview & Notes -->
+                        <div class="w-1/2 overflow-y-auto bg-gray-50 p-5">
+                            @if (selectedArticle == null)
+                            {
+                                <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                                    <svg class="w-16 h-16 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <p class="text-center font-medium text-sm">Selecciona un artículo</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Article Preview -->
+                                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4">
+                                    <div class="bg-gradient-to-r from-indigo-500 to-blue-500 px-4 py-3">
+                                        <h3 class="font-bold text-white text-sm">@selectedArticle.Title</h3>
+                                    </div>
+                                    <div class="p-4 space-y-2">
+                                        <div>
+                                            <span class="text-xs font-semibold text-gray-500 uppercase">Problema</span>
+                                            <p class="text-sm text-gray-700 mt-1 line-clamp-3">@selectedArticle.ProblemDescription</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Was Helpful Toggle -->
+                                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="@(wasHelpful ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-400") p-2 rounded-full">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-medium text-gray-900 text-sm">¿Fue útil este artículo?</span>
+                                        </div>
+                                        <button type="button" 
+                                                @onclick="() => wasHelpful = !wasHelpful"
+                                                class="@(wasHelpful ? "bg-green-500" : "bg-gray-300") relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none">
+                                            <span class="@(wasHelpful ? "translate-x-5" : "translate-x-0") pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Notes -->
+                                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Notas de aplicación (opcional)
+                                    </label>
+                                    <textarea @bind="linkNotes" rows="3"
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-none"
+                                              placeholder="Describe brevemente cómo aplicaste la solución..."></textarea>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Full Article Creation Form -->
+                    <div class="p-6 space-y-5">
+                        @if (isLoadingIncident)
+                        {
+                            <div class="flex justify-center items-center py-12">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                                <span class="ml-3 text-gray-600">Cargando datos del incidente...</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Title -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                    <span class="text-red-500">*</span> Título del Artículo
+                                </label>
+                                <input type="text" @bind="articleForm.Title"
+                                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                                       placeholder="Ej: Solución a problemas de conexión WiFi" />
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Service -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                        <span class="text-red-500">*</span> Servicio
+                                    </label>
+                                    <select @bind="articleForm.ServiceId" 
+                                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                                        <option value="0">Seleccionar servicio</option>
+                                        @foreach (var service in services)
+                                        {
+                                            <option value="@service.Id">@service.Name</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <!-- Incident Type -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                        <span class="text-red-500">*</span> Tipo de Problema
+                                    </label>
+                                    <select @bind="articleForm.IncidentType" 
+                                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                                        <option value="@IncidentType.Failure">Fallo</option>
+                                        <option value="@IncidentType.Query">Consulta</option>
+                                        <option value="@IncidentType.Request">Solicitud</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Problem Description -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                                    <span class="text-red-500">*</span> Descripción del Problema
+                                </label>
+                                <textarea @bind="articleForm.ProblemDescription" rows="3"
+                                          class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-none"
+                                          placeholder="Describe el problema que resuelve este artículo..."></textarea>
+                            </div>
+
+                            <!-- Solution Steps -->
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Pasos de Solución</label>
+                                    <span class="text-xs text-gray-500">Los pasos vacíos se eliminarán automáticamente</span>
+                                </div>
+                                
+                                @foreach (var step in articleForm.Steps.OrderBy(s => s.StepNumber))
+                                {
+                                    <div class="bg-gray-50 rounded-xl p-4 mb-3 border border-gray-200">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white text-sm font-bold">
+                                                @step.StepNumber
+                                            </span>
+                                            @if (articleForm.Steps.Count > 1)
+                                            {
+                                                <button type="button" @onclick="() => RemoveStep(step)" 
+                                                        class="text-red-500 hover:text-red-700">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <div class="w-5"></div>
+                                            }
+                                        </div>
+                                        <div class="space-y-3">
+                                            <input type="text" value="@step.Title" 
+                                                   @oninput="(e) => { step.Title = e.Value?.ToString() ?? string.Empty; OnStepInput(step); }"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                                                   placeholder="Título del paso" />
+                                            <textarea value="@step.Description" 
+                                                      @oninput="(e) => { step.Description = e.Value?.ToString() ?? string.Empty; OnStepInput(step); }" rows="2"
+                                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm resize-none"
+                                                      placeholder="Descripción detallada del paso"></textarea>
+                                            <input type="text" value="@step.Note" 
+                                                   @oninput="(e) => { step.Note = e.Value?.ToString(); OnStepInput(step); }"
+                                                   class="w-full px-3 py-2 border border-yellow-300 bg-yellow-50 rounded-lg focus:ring-2 focus:ring-yellow-500 text-sm"
+                                                   placeholder="Nota importante (opcional)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Recommendations -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Recomendaciones</label>
+                                <textarea @bind="articleForm.Recommendations" rows="2"
+                                          class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-none"
+                                          placeholder="Recomendaciones adicionales para el técnico..."></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Estimated Time -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tiempo estimado (minutos)</label>
+                                    <div class="relative">
+                                        <input type="number" @bind="articleForm.EstimatedResolutionTimeMinutes" min="1"
+                                               class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                                               placeholder="Ej: 30" />
+                                        <div class="absolute right-4 top-3 text-gray-400">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Keywords -->
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Palabras clave</label>
+                                    <input type="text" @bind="articleForm.Keywords"
+                                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                                           placeholder="wifi, conexión, red (separadas por coma)" />
+                                </div>
+                            </div>
+
+                            <!-- Info Banner -->
+                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                                <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div class="text-sm text-green-700">
+                                    <p class="font-medium">Al resolver este incidente:</p>
+                                    <ul class="mt-1 list-disc list-inside text-xs">
+                                        <li>Se creará un nuevo artículo en la Base de Conocimiento</li>
+                                        <li>El artículo quedará vinculado automáticamente a este incidente</li>
+                                        <li>Otros técnicos podrán usar esta solución en el futuro</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    @if (useExistingArticle && selectedArticle != null)
+                    {
+                        <span class="inline-flex items-center gap-1 text-green-600">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            Artículo seleccionado
+                        </span>
+                    }
+                    else if (!useExistingArticle && CanCreateArticle)
+                    {
+                        <span class="inline-flex items-center gap-1 text-green-600">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            Listo para crear artículo
+                        </span>
+                    }
+                </div>
+                <div class="flex gap-3">
+                    <button @onclick="Close" 
+                            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                        Cancelar
+                    </button>
+                    <button @onclick="ResolveIncident" 
+                            disabled="@(!CanResolve || isResolving)"
+                            class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors flex items-center gap-2 shadow-sm">
+                        @if (isResolving)
+                        {
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>@(useExistingArticle ? "Resolviendo..." : "Creando artículo...")</span>
+                        }
+                        else
+                        {
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>@(useExistingArticle ? "Marcar como Resuelto" : "Crear Artículo y Resolver")</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public int IncidentId { get; set; }
+
+    [Parameter]
+    public int ServiceId { get; set; }
+
+    [Parameter]
+    public IncidentType IncidentType { get; set; }
+
+    [Parameter]
+    public string UserId { get; set; } = "";
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnResolved { get; set; }
+
+    // Resolution type selection
+    private bool useExistingArticle = true;
+
+    // For article linking
+    private IEnumerable<KnowledgeArticleListDto> articles = new List<KnowledgeArticleListDto>();
+    private KnowledgeArticleListDto? selectedArticle;
+    private int? selectedArticleId;
+    private string searchKeyword = "";
+    private bool isLoadingArticles = false;
+    private bool isSearching = false;
+    private bool wasHelpful = true;
+    private string? linkNotes;
+
+    // For new article creation
+    private ArticleFormModel articleForm = new();
+    private List<ServiceListItem> services = new();
+    private bool isLoadingIncident = false;
+    private IncidentDto? incidentData;
+
+    // General state
+    private bool isResolving = false;
+    private System.Timers.Timer? debounceTimer;
+
+    private bool CanResolve => useExistingArticle 
+        ? selectedArticle != null 
+        : CanCreateArticle;
+
+    private bool CanCreateArticle => 
+        !string.IsNullOrWhiteSpace(articleForm.Title) &&
+        articleForm.ServiceId > 0 &&
+        !string.IsNullOrWhiteSpace(articleForm.ProblemDescription);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible)
+        {
+            if (!articles.Any() && useExistingArticle)
+            {
+                await LoadRelatedArticles();
+            }
+            if (!services.Any())
+            {
+                await LoadServices();
+            }
+        }
+    }
+
+    private async Task SelectResolutionType(bool useArticle)
+    {
+        useExistingArticle = useArticle;
+        if (useArticle && !articles.Any())
+        {
+            await LoadRelatedArticles();
+        }
+        else if (!useArticle && incidentData == null)
+        {
+            await LoadIncidentAndPrefillForm();
+        }
+    }
+
+    private async Task LoadServices()
+    {
+        try
+        {
+            var result = await Mediator.Send(new GetAllServicesQuery());
+            services = result.Select(s => new ServiceListItem { Id = s.Id, Name = s.Name }).ToList();
+        }
+        catch
+        {
+            services = new List<ServiceListItem>();
+        }
+    }
+
+    private async Task LoadIncidentAndPrefillForm()
+    {
+        isLoadingIncident = true;
+        StateHasChanged();
+        try
+        {
+            incidentData = await Mediator.Send(new GetIncidentByIdQuery { Id = IncidentId });
+            if (incidentData != null)
+            {
+                articleForm = new ArticleFormModel
+                {
+                    Title = incidentData.Title,
+                    ServiceId = incidentData.ServiceId,
+                    IncidentType = incidentData.Type,
+                    ProblemDescription = incidentData.Description,
+                    Recommendations = incidentData.ResolutionDescription,
+                    EstimatedResolutionTimeMinutes = incidentData.ResolutionTimeMinutes
+                };
+
+                // Si hay causa raíz, agregarla como primer paso
+                if (!string.IsNullOrEmpty(incidentData.RootCause))
+                {
+                    articleForm.Steps.Add(new StepFormModel 
+                    { 
+                        StepNumber = 1, 
+                        Title = "Identificación de causa raíz",
+                        Description = incidentData.RootCause
+                    });
+                }
+                else
+                {
+                    articleForm.Steps.Add(new StepFormModel { StepNumber = 1 });
+                }
+            }
+            else
+            {
+                // Fallback: usar parámetros recibidos
+                articleForm = new ArticleFormModel
+                {
+                    ServiceId = ServiceId,
+                    IncidentType = IncidentType
+                };
+                articleForm.Steps.Add(new StepFormModel { StepNumber = 1 });
+            }
+        }
+        catch
+        {
+            articleForm = new ArticleFormModel
+            {
+                ServiceId = ServiceId,
+                IncidentType = IncidentType
+            };
+            articleForm.Steps.Add(new StepFormModel { StepNumber = 1 });
+        }
+        finally
+        {
+            isLoadingIncident = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadRelatedArticles()
+    {
+        isLoadingArticles = true;
+        StateHasChanged();
+        try
+        {
+            var query = new GetRelatedArticlesQuery
+            {
+                ServiceId = ServiceId,
+                IncidentType = IncidentType,
+                MaxResults = 15
+            };
+            articles = await Mediator.Send(query);
+        }
+        catch
+        {
+            articles = new List<KnowledgeArticleListDto>();
+        }
+        finally
+        {
+            isLoadingArticles = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchKeyword = e.Value?.ToString() ?? "";
+        
+        debounceTimer?.Stop();
+        debounceTimer?.Dispose();
+        
+        if (string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            _ = LoadRelatedArticles();
+            return;
+        }
+        
+        isSearching = true;
+        StateHasChanged();
+        
+        debounceTimer = new System.Timers.Timer(400);
+        debounceTimer.Elapsed += async (sender, args) =>
+        {
+            debounceTimer?.Stop();
+            await InvokeAsync(async () =>
+            {
+                await SearchArticles();
+                isSearching = false;
+                StateHasChanged();
+            });
+        };
+        debounceTimer.AutoReset = false;
+        debounceTimer.Start();
+    }
+
+    private async Task SearchArticles()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                await LoadRelatedArticles();
+            }
+            else
+            {
+                var query = new SearchKnowledgeArticlesQuery
+                {
+                    Keyword = searchKeyword,
+                    IncludeInactive = false
+                };
+                articles = await Mediator.Send(query);
+            }
+        }
+        catch
+        {
+            articles = new List<KnowledgeArticleListDto>();
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        searchKeyword = "";
+        selectedArticle = null;
+        selectedArticleId = null;
+        await LoadRelatedArticles();
+    }
+
+    private void SelectArticle(KnowledgeArticleListDto article)
+    {
+        if (selectedArticleId == article.Id)
+        {
+            selectedArticle = null;
+            selectedArticleId = null;
+        }
+        else
+        {
+            selectedArticle = article;
+            selectedArticleId = article.Id;
+        }
+    }
+
+    // Step management
+    private void OnStepInput(StepFormModel step)
+    {
+        // Si es el último paso y tiene contenido, agregar uno nuevo
+        var lastStep = articleForm.Steps.OrderBy(s => s.StepNumber).Last();
+        if (step == lastStep && !string.IsNullOrWhiteSpace(step.Title))
+        {
+            articleForm.Steps.Add(new StepFormModel { StepNumber = articleForm.Steps.Count + 1 });
+        }
+    }
+
+    private void RemoveStep(StepFormModel step)
+    {
+        articleForm.Steps.Remove(step);
+        // Renumerar los pasos
+        int number = 1;
+        foreach (var s in articleForm.Steps.OrderBy(s => s.StepNumber))
+        {
+            s.StepNumber = number++;
+        }
+    }
+
+    private List<StepFormModel> GetValidSteps()
+    {
+        return articleForm.Steps
+            .Where(s => !string.IsNullOrWhiteSpace(s.Title) || !string.IsNullOrWhiteSpace(s.Description))
+            .OrderBy(s => s.StepNumber)
+            .Select((s, index) => new StepFormModel
+            {
+                StepNumber = index + 1,
+                Title = s.Title,
+                Description = s.Description,
+                Note = s.Note
+            })
+            .ToList();
+    }
+
+    private async Task ResolveIncident()
+    {
+        if (!CanResolve || string.IsNullOrEmpty(UserId))
+            return;
+
+        isResolving = true;
+        try
+        {
+            if (useExistingArticle)
+            {
+                // Resolver con artículo existente
+                var command = new ResolveIncidentCommand
+                {
+                    IncidentId = IncidentId,
+                    UserId = UserId,
+                    LinkedArticleId = selectedArticleId,
+                    ArticleWasHelpful = wasHelpful,
+                    LinkNotes = linkNotes
+                };
+
+                var result = await Mediator.Send(command);
+                
+                if (result)
+                {
+                    ToastService.ShowSuccess("Incidente resuelto con artículo vinculado");
+                    await OnResolved.InvokeAsync();
+                }
+                else
+                {
+                    ToastService.ShowError("No se pudo resolver el incidente");
+                }
+            }
+            else
+            {
+                // Crear artículo KB y resolver incidente
+                var validSteps = GetValidSteps();
+                
+                var createArticleCommand = new CreateKnowledgeArticleCommand
+                {
+                    Title = articleForm.Title,
+                    ServiceId = articleForm.ServiceId,
+                    IncidentType = articleForm.IncidentType,
+                    ProblemDescription = articleForm.ProblemDescription,
+                    Recommendations = articleForm.Recommendations,
+                    EstimatedResolutionTimeMinutes = articleForm.EstimatedResolutionTimeMinutes,
+                    AuthorId = UserId,
+                    Keywords = articleForm.Keywords,
+                    OriginIncidentId = IncidentId,
+                    Steps = validSteps.Select(s => new CreateSolutionStepDto
+                    {
+                        StepNumber = s.StepNumber,
+                        Title = s.Title,
+                        Description = s.Description,
+                        Note = s.Note
+                    }).ToList()
+                };
+
+                var newArticleId = await Mediator.Send(createArticleCommand);
+
+                // Ahora resolver el incidente con el nuevo artículo vinculado
+                var resolveCommand = new ResolveIncidentCommand
+                {
+                    IncidentId = IncidentId,
+                    UserId = UserId,
+                    LinkedArticleId = newArticleId,
+                    ArticleWasHelpful = true,
+                    LinkNotes = null,
+                    ResolutionDescription = articleForm.ProblemDescription,
+                    ResolutionTimeMinutes = articleForm.EstimatedResolutionTimeMinutes
+                };
+
+                var result = await Mediator.Send(resolveCommand);
+                
+                if (result)
+                {
+                    ToastService.ShowSuccess("Artículo KB creado e incidente resuelto correctamente");
+                    await OnResolved.InvokeAsync();
+                }
+                else
+                {
+                    ToastService.ShowWarning("Artículo creado pero hubo un problema al resolver el incidente");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isResolving = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        // Reset all state
+        useExistingArticle = true;
+        selectedArticle = null;
+        selectedArticleId = null;
+        wasHelpful = true;
+        linkNotes = null;
+        searchKeyword = "";
+        articleForm = new ArticleFormModel();
+        incidentData = null;
+        articles = new List<KnowledgeArticleListDto>();
+        debounceTimer?.Stop();
+        debounceTimer?.Dispose();
+        await OnClose.InvokeAsync();
+    }
+    
+    public void Dispose()
+    {
+        debounceTimer?.Stop();
+        debounceTimer?.Dispose();
+    }
+
+    // Helper classes
+    private class ServiceListItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
+    private class ArticleFormModel
+    {
+        public string Title { get; set; } = "";
+        public int ServiceId { get; set; }
+        public IncidentType IncidentType { get; set; } = IncidentType.Failure;
+        public string ProblemDescription { get; set; } = "";
+        public string? Recommendations { get; set; }
+        public int? EstimatedResolutionTimeMinutes { get; set; }
+        public string? Keywords { get; set; }
+        public List<StepFormModel> Steps { get; set; } = new();
+    }
+
+    private class StepFormModel
+    {
+        public int StepNumber { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string? Note { get; set; }
+    }
+}

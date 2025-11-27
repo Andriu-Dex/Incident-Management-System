@@ -174,6 +174,24 @@
                                             </svg>
                                             Ver
                                         </button>
+                                        @if (incident.Status == IncidentStatus.InProgress || incident.Status == IncidentStatus.Escalated)
+                                        {
+                                            <button @onclick="() => OpenResolveModal(incident)" class="text-green-600 hover:text-green-800 font-semibold text-xs inline-flex items-center gap-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Resolver
+                                            </button>
+                                        }
+                                        @if ((incident.Status == IncidentStatus.Resolved || incident.Status == IncidentStatus.Closed) && !incident.HasLinkedArticles)
+                                        {
+                                            <button @onclick="() => CreateArticleFromIncident(incident.Id)" class="text-purple-600 hover:text-purple-800 font-semibold text-xs inline-flex items-center gap-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                </svg>
+                                                Crear Art.
+                                            </button>
+                                        }
                                         @if (superAdminMode)
                                         {
                                             <button @onclick="() => ConfirmDeleteIncident(incident)" class="text-red-600 hover:text-red-800 font-semibold text-xs inline-flex items-center gap-1">
@@ -654,19 +672,7 @@
                                     </div>
                                 }
 
-                                <!-- Botón Vincular Artículo -->
-                                @if (selectedIncident?.Status == IncidentStatus.InProgress || selectedIncident?.Status == IncidentStatus.Resolved || selectedIncident?.Status == IncidentStatus.Escalated)
-                                {
-                                    <div class="mt-4 pt-4 border-t border-indigo-200">
-                                        <button @onclick="OpenLinkArticleModal" 
-                                                class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                            </svg>
-                                            Vincular Artículo
-                                        </button>
-                                    </div>
-                                }
+                                <!-- Botón Vincular Artículo removido - ahora se vincula desde el modal Resolver -->
                             </div>
                         }
                     </div>
@@ -707,6 +713,16 @@
     UserId="@(currentUserId ?? string.Empty)"
     OnClose="@CloseLinkArticleModal"
     OnLinked="@OnArticleLinked" />
+
+<!-- Modal de Resolver Incidente -->
+<IncidentsTI.Web.Components.Shared.TechnicianResolveModal
+    IsVisible="@showResolveModal"
+    IncidentId="@resolveIncidentId"
+    ServiceId="@resolveServiceId"
+    IncidentType="@resolveIncidentType"
+    UserId="@(currentUserId ?? string.Empty)"
+    OnClose="@CloseResolveModal"
+    OnResolved="@OnIncidentResolved" />
 
 <!-- Modal de Vista Previa de Artículo KB -->
 <IncidentsTI.Web.Components.Shared.ArticlePreviewModal
@@ -761,6 +777,12 @@
     private bool showArticlePreviewModal = false;
     private int previewArticleId = 0;
     private int? incidentIdToReopen = null; // Para reabrir el incidente al cerrar el artículo
+    
+    // Resolver Incidente
+    private bool showResolveModal = false;
+    private int resolveIncidentId = 0;
+    private int resolveServiceId = 0;
+    private IncidentType resolveIncidentType = IncidentType.Failure;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1308,5 +1330,38 @@
             await OpenDetailModal(incidentId);
             ToastService.ShowSuccess("Artículo vinculado correctamente");
         }
+    }
+    
+    // Métodos para Resolver Incidente
+    private void OpenResolveModal(IncidentListDto incident)
+    {
+        resolveIncidentId = incident.Id;
+        resolveServiceId = incident.ServiceId;
+        resolveIncidentType = incident.Type;
+        showResolveModal = true;
+    }
+
+    private void CloseResolveModal()
+    {
+        showResolveModal = false;
+        resolveIncidentId = 0;
+        resolveServiceId = 0;
+    }
+
+    private async Task OnIncidentResolved()
+    {
+        showResolveModal = false;
+        resolveIncidentId = 0;
+        resolveServiceId = 0;
+        
+        // Recargar la lista de incidentes
+        await LoadData();
+        ToastService.ShowSuccess("Incidente resuelto correctamente");
+    }
+    
+    private void CreateArticleFromIncident(int incidentId)
+    {
+        // Navegar a la página de crear artículo KB pasando el ID del incidente
+        Navigation.NavigateTo($"/technician/knowledge-base/new?incidentId={incidentId}");
     }
 }

@@ -53,5 +53,10 @@ public enum HistoryAction
     /// <summary>
     /// Título o descripción actualizados
     /// </summary>
-    DetailsUpdated = 9
+    DetailsUpdated = 9,
+    
+    /// <summary>
+    /// Incidente resuelto con documentación de solución
+    /// </summary>
+    Resolved = 10
 }

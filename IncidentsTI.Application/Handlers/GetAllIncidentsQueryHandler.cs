@@ -11,15 +11,18 @@ public class GetAllIncidentsQueryHandler : IRequestHandler<GetAllIncidentsQuery,
 {
     private readonly IIncidentRepository _incidentRepository;
     private readonly IServiceRepository _serviceRepository;
+    private readonly IKnowledgeArticleRepository _articleRepository;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public GetAllIncidentsQueryHandler(
         IIncidentRepository incidentRepository,
         IServiceRepository serviceRepository,
+        IKnowledgeArticleRepository articleRepository,
         UserManager<ApplicationUser> userManager)
     {
         _incidentRepository = incidentRepository;
         _serviceRepository = serviceRepository;
+        _articleRepository = articleRepository;
         _userManager = userManager;
     }
 
@@ -56,11 +59,15 @@ public class GetAllIncidentsQueryHandler : IRequestHandler<GetAllIncidentsQuery,
                 assignedTo = await _userManager.FindByIdAsync(incident.AssignedToId);
             }
 
+            // Verificar si tiene artículos vinculados
+            var linkedArticles = await _articleRepository.GetIncidentLinksAsync(incident.Id);
+
             result.Add(new IncidentListDto
             {
                 Id = incident.Id,
                 TicketNumber = incident.TicketNumber,
                 Title = incident.Title,
+                ServiceId = incident.ServiceId,
                 ServiceName = service?.Name ?? "",
                 Type = incident.Type,
                 TypeName = GetTypeName(incident.Type),
@@ -71,7 +78,8 @@ public class GetAllIncidentsQueryHandler : IRequestHandler<GetAllIncidentsQuery,
                 UserName = user != null ? $"{user.FirstName} {user.LastName}" : "",
                 AssignedToId = incident.AssignedToId,
                 AssignedToName = assignedTo != null ? $"{assignedTo.FirstName} {assignedTo.LastName}" : null,
-                CreatedAt = incident.CreatedAt
+                CreatedAt = incident.CreatedAt,
+                HasLinkedArticles = linkedArticles.Any()
             });
         }
 

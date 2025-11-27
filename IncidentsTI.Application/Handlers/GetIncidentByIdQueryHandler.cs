@@ -39,6 +39,12 @@ public class GetIncidentByIdQueryHandler : IRequestHandler<GetIncidentByIdQuery,
             assignedTo = await _userManager.FindByIdAsync(incident.AssignedToId);
         }
 
+        ApplicationUser? resolvedBy = null;
+        if (!string.IsNullOrEmpty(incident.ResolvedById))
+        {
+            resolvedBy = await _userManager.FindByIdAsync(incident.ResolvedById);
+        }
+
         return new IncidentDto
         {
             Id = incident.Id,
@@ -63,6 +69,12 @@ public class GetIncidentByIdQueryHandler : IRequestHandler<GetIncidentByIdQuery,
             CurrentEscalationLevelId = incident.CurrentEscalationLevelId,
             CurrentEscalationLevelName = incident.CurrentEscalationLevel?.Name,
             CurrentEscalationLevelOrder = incident.CurrentEscalationLevel?.Order,
+            ResolutionDescription = incident.ResolutionDescription,
+            RootCause = incident.RootCause,
+            ResolutionTimeMinutes = incident.ResolutionTimeMinutes,
+            ResolvedAt = incident.ResolvedAt,
+            ResolvedById = incident.ResolvedById,
+            ResolvedByName = resolvedBy != null ? $"{resolvedBy.FirstName} {resolvedBy.LastName}" : null,
             CreatedAt = incident.CreatedAt,
             UpdatedAt = incident.UpdatedAt
         };
