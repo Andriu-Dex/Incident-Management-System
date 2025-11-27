@@ -1,6 +1,7 @@
 @page "/technician/dashboard"
 @using IncidentsTI.Application.Commands
 @using IncidentsTI.Application.DTOs
+@using IncidentsTI.Application.DTOs.Escalation
 @using IncidentsTI.Application.Queries
 @using IncidentsTI.Domain.Enums
 @using MediatR
@@ -126,7 +127,7 @@
 @if (showDetailModal && selectedIncident != null)
 {
     <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 9999; overflow-y: auto;" @onclick="CloseDetailModal">
-        <div style="position: relative; top: 40px; max-width: 800px; margin: 0 auto 40px auto; background: white; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);" @onclick:stopPropagation="true">
+        <div style="position: relative; top: 40px; max-width: 900px; margin: 0 auto 40px auto; background: white; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);" @onclick:stopPropagation="true">
             <!-- Header del Modal -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-2xl">
                 <div class="flex items-center justify-between">
@@ -220,7 +221,7 @@
                 </div>
 
                 <!-- Estado Actual y Fechas -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <div class="text-sm font-semibold text-gray-600 mb-1">Estado Actual</div>
                         <span class="@GetStatusBadgeClass(selectedIncident.Status)">@selectedIncident.StatusName</span>
@@ -229,7 +230,35 @@
                         <div class="text-sm font-semibold text-gray-600 mb-1">Fecha de Creación</div>
                         <div class="font-medium text-gray-900">@selectedIncident.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
                     </div>
+                    <!-- Nivel de Escalamiento -->
+                    <div class="@(selectedIncident.CurrentEscalationLevelId.HasValue ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-200") rounded-lg p-4 border">
+                        <div class="text-sm font-semibold @(selectedIncident.CurrentEscalationLevelId.HasValue ? "text-orange-700" : "text-gray-600") mb-1">Nivel de Escalamiento</div>
+                        @if (selectedIncident.CurrentEscalationLevelId.HasValue)
+                        {
+                            <div class="flex items-center gap-2">
+                                <span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full text-xs font-semibold">Nivel @selectedIncident.CurrentEscalationLevelOrder</span>
+                                <span class="font-medium text-orange-800 text-sm">@selectedIncident.CurrentEscalationLevelName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-gray-500 text-sm">Sin escalar</span>
+                        }
+                    </div>
                 </div>
+
+                <!-- Botón de Escalar -->
+                @if (selectedIncident.Status != IncidentStatus.Closed && selectedIncident.Status != IncidentStatus.Resolved)
+                {
+                    <div class="flex justify-end">
+                        <button @onclick="OpenEscalateModal" class="px-4 py-2 bg-white border-2 border-amber-500 text-amber-700 rounded-lg hover:bg-amber-50 hover:border-amber-600 hover:text-amber-800 font-semibold transition-all duration-200 inline-flex items-center gap-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            </svg>
+                            Escalar Incidente
+                        </button>
+                    </div>
+                }
 
                 <!-- Sección de Comentarios (Acordeón) -->
                 <div class="border-t border-gray-200 pt-4">
@@ -338,6 +367,60 @@
                         }
                     }
                 </div>
+
+                <!-- Sección de Historial de Escalamientos (Acordeón) -->
+                <div class="border-t border-gray-200 pt-4">
+                    <button @onclick="() => escalationHistoryExpanded = !escalationHistoryExpanded" class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                            <h4 class="text-lg font-bold text-gray-900">Historial de Escalamientos</h4>
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">@incidentEscalations.Count</span>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-500 transition-transform duration-200 @(escalationHistoryExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    @if (escalationHistoryExpanded)
+                    {
+                        @if (incidentEscalations.Any())
+                        {
+                            <div class="relative max-h-48 overflow-y-auto mt-4">
+                                <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-orange-200"></div>
+                                <div class="space-y-4">
+                                    @foreach (var escalation in incidentEscalations.OrderByDescending(e => e.EscalatedAt))
+                                    {
+                                        <div class="relative pl-10">
+                                            <div class="absolute left-2 w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center">
+                                                <div class="w-2 h-2 rounded-full bg-white"></div>
+                                            </div>
+                                            <div class="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <span class="font-semibold text-sm text-gray-900">@escalation.FromUserName</span>
+                                                    <span class="text-xs text-gray-500">@escalation.EscalatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-sm mb-1">
+                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">@(escalation.FromLevelName ?? "Sin nivel")</span>
+                                                    <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                                    </svg>
+                                                    <span class="bg-orange-100 px-2 py-0.5 rounded text-orange-800">@escalation.ToLevelName</span>
+                                                </div>
+                                                <p class="text-sm text-gray-700"><strong>Motivo:</strong> @escalation.Reason</p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-sm text-gray-500 text-center py-4 mt-4">No hay escalamientos registrados</p>
+                        }
+                    }
+                </div>
             </div>
 
             <!-- Footer del Modal -->
@@ -355,6 +438,15 @@
         </div>
     </div>
 }
+
+<!-- Modal de Escalamiento -->
+<IncidentsTI.Web.Components.Shared.EscalateIncidentModal
+    IsVisible="@showEscalateModal"
+    IncidentId="@(selectedIncident?.Id ?? 0)"
+    UserId="@(currentUserId ?? string.Empty)"
+    CurrentLevel="@currentEscalationLevel"
+    OnClose="@CloseEscalateModal"
+    OnEscalated="@OnIncidentEscalated" />
 
 @code {
     private List<IncidentListDto> incidents = new();
@@ -375,6 +467,12 @@
     private bool isInternalComment = false;
     private bool commentsExpanded = false;
     private bool historyExpanded = false;
+    
+    // Escalamiento
+    private List<IncidentEscalationDto> incidentEscalations = new();
+    private bool escalationHistoryExpanded = false;
+    private bool showEscalateModal = false;
+    private EscalationLevelDto? currentEscalationLevel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -433,9 +531,10 @@
             editType = selectedIncident.Type;
             editPriority = selectedIncident.Priority;
             
-            // Cargar historial y comentarios
+            // Cargar historial, comentarios y escalamientos
             await LoadIncidentHistory(incidentId);
             await LoadIncidentComments(incidentId);
+            await LoadEscalationHistory();
             
             showDetailModal = true;
         }
@@ -662,5 +761,61 @@
             HistoryAction.DetailsUpdated => "Detalles Actualizados",
             _ => "Acción"
         };
+    }
+
+    // Métodos de Escalamiento
+    private async Task LoadEscalationHistory()
+    {
+        if (selectedIncident == null) return;
+        
+        try
+        {
+            var query = new GetIncidentEscalationHistoryQuery { IncidentId = selectedIncident.Id };
+            incidentEscalations = (await Mediator.Send(query)).ToList();
+        }
+        catch
+        {
+            incidentEscalations = new();
+        }
+    }
+
+    private void OpenEscalateModal()
+    {
+        if (selectedIncident?.CurrentEscalationLevelId.HasValue == true)
+        {
+            currentEscalationLevel = new EscalationLevelDto
+            {
+                Id = selectedIncident.CurrentEscalationLevelId.Value,
+                Name = selectedIncident.CurrentEscalationLevelName ?? "",
+                Order = selectedIncident.CurrentEscalationLevelOrder ?? 0
+            };
+        }
+        else
+        {
+            currentEscalationLevel = null;
+        }
+        showEscalateModal = true;
+    }
+
+    private void CloseEscalateModal()
+    {
+        showEscalateModal = false;
+    }
+
+    private async Task OnIncidentEscalated()
+    {
+        showEscalateModal = false;
+        
+        // Recargar el incidente y su historial
+        if (selectedIncident != null)
+        {
+            var query = new GetIncidentByIdQuery { Id = selectedIncident.Id };
+            selectedIncident = await Mediator.Send(query);
+            await LoadIncidentHistory(selectedIncident.Id);
+            await LoadEscalationHistory();
+        }
+        
+        await LoadIncidents();
+        ToastService.ShowSuccess("Incidente escalado correctamente");
     }
 }
