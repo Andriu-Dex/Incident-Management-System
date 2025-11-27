@@ -2,82 +2,100 @@
 @using IncidentsTI.Application.Queries
 @using MediatR
 
-<div class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-    <div class="flex items-center gap-2 mb-6">
-        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+<div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+    <!-- Accordion Header -->
+    <button @onclick="() => isExpanded = !isExpanded" 
+            class="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+            </div>
+            <div class="text-left">
+                <h2 class="text-lg font-bold text-gray-900">Historial de Escalamientos</h2>
+                <span class="text-sm text-gray-500">@escalations.Count escalamiento(s)</span>
+            </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-500 transition-transform duration-200 @(isExpanded ? "rotate-180" : "")" 
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
-        <h2 class="text-lg font-bold text-gray-900">Historial de Escalamientos</h2>
-    </div>
-
-    @if (isLoading)
+    </button>
+    
+    <!-- Accordion Content -->
+    @if (isExpanded)
     {
-        <div class="text-center py-4">
-            <div class="spinner-border text-orange-500" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-        </div>
-    }
-    else if (escalations.Any())
-    {
-        <div class="relative">
-            <!-- Timeline line -->
-            <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-orange-200"></div>
-            
-            <div class="space-y-6">
-                @foreach (var escalation in escalations)
-                {
-                    <div class="relative pl-10">
-                        <!-- Timeline dot -->
-                        <div class="absolute left-2.5 top-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></div>
-                        
-                        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-semibold text-gray-900">@escalation.FromUserName</span>
-                                    <span class="text-orange-600">escaló a</span>
-                                    <span class="font-semibold text-orange-700">@escalation.ToLevelName</span>
+        <div class="px-6 pb-6 border-t border-gray-100">
+            @if (isLoading)
+            {
+                <div class="text-center py-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                    <span class="text-sm text-gray-500 mt-2">Cargando...</span>
+                </div>
+            }
+            else if (escalations.Any())
+            {
+                <div class="relative mt-4">
+                    <!-- Timeline line -->
+                    <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-orange-200"></div>
+                    
+                    <div class="space-y-6">
+                        @foreach (var escalation in escalations)
+                        {
+                            <div class="relative pl-10">
+                                <!-- Timeline dot -->
+                                <div class="absolute left-2.5 top-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></div>
+                                
+                                <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-semibold text-gray-900">@escalation.FromUserName</span>
+                                            <span class="text-orange-600">escaló a</span>
+                                            <span class="font-semibold text-orange-700">@escalation.ToLevelName</span>
+                                        </div>
+                                        <span class="text-sm text-gray-500">@FormatLocalDateTime(escalation.EscalatedAt)</span>
+                                    </div>
+                                    
+                                    @if (!string.IsNullOrEmpty(escalation.FromLevelName))
+                                    {
+                                        <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                            <span class="bg-orange-100 px-2 py-0.5 rounded">@escalation.FromLevelName</span>
+                                            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                            </svg>
+                                            <span class="bg-orange-100 px-2 py-0.5 rounded text-orange-800">@escalation.ToLevelName</span>
+                                        </div>
+                                    }
+                                    
+                                    <p class="text-gray-700"><strong>Motivo:</strong> @escalation.Reason</p>
+                                    
+                                    @if (!string.IsNullOrEmpty(escalation.Notes))
+                                    {
+                                        <p class="text-sm text-gray-500 mt-1 italic">@escalation.Notes</p>
+                                    }
+                                    
+                                    @if (!string.IsNullOrEmpty(escalation.ToUserName))
+                                    {
+                                        <p class="text-sm text-gray-600 mt-2">
+                                            <strong>Asignado a:</strong> @escalation.ToUserName
+                                        </p>
+                                    }
                                 </div>
-                                <span class="text-sm text-gray-500">@FormatLocalDateTime(escalation.EscalatedAt)</span>
                             </div>
-                            
-                            @if (!string.IsNullOrEmpty(escalation.FromLevelName))
-                            {
-                                <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                                    <span class="bg-gray-100 px-2 py-0.5 rounded">@escalation.FromLevelName</span>
-                                    <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                                    </svg>
-                                    <span class="bg-orange-100 px-2 py-0.5 rounded text-orange-800">@escalation.ToLevelName</span>
-                                </div>
-                            }
-                            
-                            <p class="text-gray-700"><strong>Motivo:</strong> @escalation.Reason</p>
-                            
-                            @if (!string.IsNullOrEmpty(escalation.Notes))
-                            {
-                                <p class="text-sm text-gray-500 mt-1 italic">@escalation.Notes</p>
-                            }
-                            
-                            @if (!string.IsNullOrEmpty(escalation.ToUserName))
-                            {
-                                <p class="text-sm text-gray-600 mt-2">
-                                    <strong>Asignado a:</strong> @escalation.ToUserName
-                                </p>
-                            }
-                        </div>
+                        }
                     </div>
-                }
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="text-center py-8 text-gray-500">
-            <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-            </svg>
-            <p>No hay historial de escalamientos</p>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <p>No hay historial de escalamientos</p>
+                </div>
+            }
         </div>
     }
 </div>
@@ -90,6 +108,7 @@
 
     private List<IncidentEscalationDto> escalations = new();
     private bool isLoading = true;
+    private bool isExpanded = false;
 
     protected override async Task OnInitializedAsync()
     {
