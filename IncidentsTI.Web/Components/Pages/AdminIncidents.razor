@@ -2,6 +2,7 @@
 @using IncidentsTI.Application.Commands
 @using IncidentsTI.Application.DTOs
 @using IncidentsTI.Application.DTOs.Escalation
+@using IncidentsTI.Application.DTOs.Knowledge
 @using IncidentsTI.Application.DTOs.Users
 @using IncidentsTI.Application.Queries
 @using IncidentsTI.Application.Features.Users.Queries
@@ -529,6 +530,147 @@
                         }
                     }
                 </div>
+
+                <!-- Sección de Base de Conocimientos (Acordeón) -->
+                @if (selectedIncident?.Status != IncidentStatus.Closed)
+                {
+                    <div class="border-t border-gray-200 pt-4">
+                        <button @onclick="() => kbExpanded = !kbExpanded" class="w-full flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 rounded-lg transition-all duration-200">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                                <h4 class="text-lg font-bold text-indigo-900">Base de Conocimientos</h4>
+                                @if (suggestedArticles.Any())
+                                {
+                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">@suggestedArticles.Count()</span>
+                                }
+                            </div>
+                            <svg class="w-5 h-5 text-indigo-500 transition-transform duration-200 @(kbExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        @if (kbExpanded)
+                        {
+                            <div class="mt-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 border border-indigo-200">
+                                @if (isLoadingKB)
+                                {
+                                    <div class="flex items-center justify-center py-4">
+                                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                                        <span class="ml-2 text-indigo-600">Buscando artículos...</span>
+                                    </div>
+                                }
+                                else if (!suggestedArticles.Any())
+                                {
+                                    <div class="text-center py-4 text-gray-500">
+                                        <svg class="w-10 h-10 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p>No se encontraron artículos relacionados</p>
+                                        <button @onclick="@(() => Navigation.NavigateTo("/technician/knowledge"))" 
+                                                class="mt-2 text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                            Crear un nuevo artículo →
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <!-- Artículos Sugeridos -->
+                                    <div class="space-y-3 max-h-48 overflow-y-auto">
+                                        @foreach (var article in suggestedArticles.Take(4))
+                                        {
+                                            <div class="bg-white rounded-lg p-3 border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer"
+                                                 @onclick="() => ViewKBArticle(article.Id)">
+                                                <div class="flex items-start justify-between mb-1">
+                                                    <h4 class="font-semibold text-gray-900 text-sm line-clamp-1 flex-1">@article.Title</h4>
+                                                    <span class="ml-2 flex items-center gap-1 text-xs text-gray-500">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        @article.UsageCount
+                                                    </span>
+                                                </div>
+                                                <p class="text-xs text-gray-600 line-clamp-1 mb-2">@article.ProblemDescription</p>
+                                                <div class="flex items-center justify-between">
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                        @article.ServiceName
+                                                    </span>
+                                                    @if (article.EstimatedResolutionTimeMinutes.HasValue)
+                                                    {
+                                                        <span class="text-xs text-gray-500 flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            @article.EstimatedTimeFormatted
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    @if (suggestedArticles.Count() > 4)
+                                    {
+                                        <div class="mt-3 text-center">
+                                            <a href="/knowledge?serviceId=@selectedIncident?.ServiceId" 
+                                               class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                                Ver @(suggestedArticles.Count() - 4) artículos más →
+                                            </a>
+                                        </div>
+                                    }
+                                }
+
+                                <!-- Artículos Vinculados -->
+                                @if (linkedArticles.Any())
+                                {
+                                    <div class="mt-4 pt-4 border-t border-indigo-200">
+                                        <h5 class="text-sm font-semibold text-indigo-800 mb-2 flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                            </svg>
+                                            Artículos usados
+                                        </h5>
+                                        <div class="space-y-2">
+                                            @foreach (var link in linkedArticles)
+                                            {
+                                                <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-200">
+                                                    <div class="flex items-center gap-2">
+                                                        @if (link.WasHelpful)
+                                                        {
+                                                            <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                                                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        }
+                                                        <span class="text-sm font-medium text-gray-900 cursor-pointer hover:text-indigo-600" @onclick="() => ViewKBArticle(link.ArticleId)">
+                                                            @link.ArticleTitle
+                                                        </span>
+                                                    </div>
+                                                    <span class="text-xs text-gray-500">@link.LinkedByUserName</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Botón Vincular Artículo -->
+                                @if (selectedIncident?.Status == IncidentStatus.InProgress || selectedIncident?.Status == IncidentStatus.Resolved || selectedIncident?.Status == IncidentStatus.Escalated)
+                                {
+                                    <div class="mt-4 pt-4 border-t border-indigo-200">
+                                        <button @onclick="OpenLinkArticleModal" 
+                                                class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                            </svg>
+                                            Vincular Artículo
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
             </div>
 
             <!-- Footer del Modal -->
@@ -555,6 +697,23 @@
     CurrentLevel="@currentEscalationLevel"
     OnClose="@CloseEscalateModal"
     OnEscalated="@OnIncidentEscalated" />
+
+<!-- Modal de Vincular Artículo KB -->
+<IncidentsTI.Web.Components.Shared.LinkArticleModal
+    IsVisible="@showLinkArticleModal"
+    IncidentId="@(selectedIncident?.Id ?? 0)"
+    ServiceId="@(selectedIncident?.ServiceId ?? 0)"
+    IncidentType="@(selectedIncident?.Type ?? IncidentType.Failure)"
+    UserId="@(currentUserId ?? string.Empty)"
+    OnClose="@CloseLinkArticleModal"
+    OnLinked="@OnArticleLinked" />
+
+<!-- Modal de Vista Previa de Artículo KB -->
+<IncidentsTI.Web.Components.Shared.ArticlePreviewModal
+    IsVisible="@showArticlePreviewModal"
+    ArticleId="@previewArticleId"
+    ShowLinkButton="false"
+    OnClose="@CloseArticlePreviewModal" />
 
 @code {
     private List<IncidentListDto> incidents = new();
@@ -592,6 +751,16 @@
     private bool escalationHistoryExpanded = false;
     private bool showEscalateModal = false;
     private EscalationLevelDto? currentEscalationLevel;
+    
+    // Knowledge Base
+    private IEnumerable<KnowledgeArticleListDto> suggestedArticles = new List<KnowledgeArticleListDto>();
+    private IEnumerable<IncidentArticleLinkDto> linkedArticles = new List<IncidentArticleLinkDto>();
+    private bool isLoadingKB = false;
+    private bool showLinkArticleModal = false;
+    private bool kbExpanded = true;
+    private bool showArticlePreviewModal = false;
+    private int previewArticleId = 0;
+    private int? incidentIdToReopen = null; // Para reabrir el incidente al cerrar el artículo
 
     protected override async Task OnInitializedAsync()
     {
@@ -623,6 +792,10 @@
             await LoadIncidentHistory(incidentId);
             await LoadIncidentComments(incidentId);
             await LoadEscalationHistory();
+            
+            // Cargar artículos de KB
+            await LoadKnowledgeBaseSuggestions();
+            await LoadLinkedArticles();
             
             showDetailModal = true;
         }
@@ -1028,5 +1201,112 @@
     {
         var localTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, EcuadorTimeZone);
         return localTime.ToString("dd/MM/yyyy HH:mm");
+    }
+    
+    // Knowledge Base methods
+    private async Task LoadKnowledgeBaseSuggestions()
+    {
+        if (selectedIncident == null) return;
+        
+        isLoadingKB = true;
+        try
+        {
+            var query = new GetRelatedArticlesQuery
+            {
+                ServiceId = selectedIncident.ServiceId,
+                IncidentType = selectedIncident.Type,
+                MaxResults = 6
+            };
+            suggestedArticles = await Mediator.Send(query);
+        }
+        catch
+        {
+            suggestedArticles = new List<KnowledgeArticleListDto>();
+        }
+        finally
+        {
+            isLoadingKB = false;
+        }
+    }
+    
+    private async Task LoadLinkedArticles()
+    {
+        if (selectedIncident == null) return;
+        
+        try
+        {
+            var query = new GetIncidentArticleLinksQuery { IncidentId = selectedIncident.Id };
+            linkedArticles = await Mediator.Send(query);
+        }
+        catch
+        {
+            linkedArticles = new List<IncidentArticleLinkDto>();
+        }
+    }
+    
+    private void ViewKBArticle(int articleId)
+    {
+        // Guardar el ID del incidente actual para reabrirlo después
+        incidentIdToReopen = selectedIncident?.Id;
+        
+        // Cerrar el modal de incidente
+        showDetailModal = false;
+        
+        // Abrir el modal de vista previa del artículo
+        previewArticleId = articleId;
+        showArticlePreviewModal = true;
+    }
+    
+    private async Task CloseArticlePreviewModal()
+    {
+        showArticlePreviewModal = false;
+        previewArticleId = 0;
+        
+        // Si hay un incidente para reabrir, lo abrimos
+        if (incidentIdToReopen.HasValue)
+        {
+            var incidentId = incidentIdToReopen.Value;
+            incidentIdToReopen = null;
+            await OpenDetailModal(incidentId);
+        }
+    }
+    
+    private void OpenLinkArticleModal()
+    {
+        // Guardar el ID del incidente actual para reabrirlo después
+        incidentIdToReopen = selectedIncident?.Id;
+        
+        // Cerrar el modal de incidente
+        showDetailModal = false;
+        
+        // Abrir el modal de vincular artículo
+        showLinkArticleModal = true;
+    }
+    
+    private async Task CloseLinkArticleModal()
+    {
+        showLinkArticleModal = false;
+        
+        // Si hay un incidente para reabrir, lo abrimos
+        if (incidentIdToReopen.HasValue)
+        {
+            var incidentId = incidentIdToReopen.Value;
+            incidentIdToReopen = null;
+            await OpenDetailModal(incidentId);
+        }
+    }
+    
+    private async Task OnArticleLinked()
+    {
+        showLinkArticleModal = false;
+        
+        // Reabrir el modal del incidente y recargar los artículos vinculados
+        if (incidentIdToReopen.HasValue)
+        {
+            var incidentId = incidentIdToReopen.Value;
+            incidentIdToReopen = null;
+            await OpenDetailModal(incidentId);
+            ToastService.ShowSuccess("Artículo vinculado correctamente");
+        }
     }
 }

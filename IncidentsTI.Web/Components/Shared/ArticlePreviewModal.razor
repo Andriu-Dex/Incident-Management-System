@@ -1,0 +1,235 @@
+@using IncidentsTI.Application.DTOs.Knowledge
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Application.Commands
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+
+@if (IsVisible && article != null)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] p-4" @onclick="Close">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-fade-in" @onclick:stopPropagation="true">
+            <!-- Header con gradiente -->
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 pr-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white">
+                                @article.ServiceName
+                            </span>
+                            @if (article.IncidentTypeName != null)
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white">
+                                    @article.IncidentTypeName
+                                </span>
+                            }
+                        </div>
+                        <h2 class="text-xl font-bold text-white">@article.Title</h2>
+                    </div>
+                    <button @onclick="Close" class="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center gap-4 mt-3 text-sm text-indigo-100">
+                    <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        @article.UsageCount usos
+                    </span>
+                    @if (article.EstimatedResolutionTimeMinutes.HasValue)
+                    {
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            ~@article.EstimatedResolutionTimeMinutes min
+                        </span>
+                    }
+                    <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        @article.AuthorName
+                    </span>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="overflow-y-auto max-h-[calc(90vh-200px)] p-6 space-y-5">
+                <!-- Problema -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Problema
+                    </h3>
+                    <p class="text-gray-700 bg-red-50 rounded-lg p-4 border border-red-100">@article.ProblemDescription</p>
+                </div>
+
+                <!-- Recomendaciones -->
+                @if (!string.IsNullOrWhiteSpace(article.Recommendations))
+                {
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Recomendaciones
+                        </h3>
+                        <p class="text-gray-700 bg-green-50 rounded-lg p-4 border border-green-100 whitespace-pre-wrap">@article.Recommendations</p>
+                    </div>
+                }
+
+                <!-- Pasos de Resolución -->
+                @if (article.Steps?.Any() == true)
+                {
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            Pasos de Resolución
+                        </h3>
+                        <div class="space-y-2">
+                            @foreach (var step in article.Steps)
+                            {
+                                <div class="flex items-start gap-3 bg-blue-50 rounded-lg p-3 border border-blue-100">
+                                    <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-sm font-bold flex items-center justify-center">
+                                        @step.StepNumber
+                                    </span>
+                                    <div class="flex-1">
+                                        <p class="text-gray-800 font-medium text-sm">@step.Title</p>
+                                        <p class="text-gray-600 text-sm mt-1">@step.Description</p>
+                                        @if (!string.IsNullOrWhiteSpace(step.Note))
+                                        {
+                                            <p class="text-blue-600 text-xs mt-1 italic">💡 @step.Note</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Keywords -->
+                @if (article.Keywords?.Any() == true)
+                {
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                            Palabras Clave
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var keyword in article.Keywords)
+                            {
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                                    @keyword
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                <button @onclick="GoToFullArticle" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Ver artículo completo
+                </button>
+                <div class="flex gap-3">
+                    <button @onclick="Close" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                        Cerrar
+                    </button>
+                    @if (ShowLinkButton)
+                    {
+                        <button @onclick="LinkThisArticle" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Vincular este artículo
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public int ArticleId { get; set; }
+    
+    [Parameter]
+    public bool ShowLinkButton { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> OnLinkArticle { get; set; }
+
+    private KnowledgeArticleDto? article;
+    private bool isLoading = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible && ArticleId > 0 && (article == null || article.Id != ArticleId))
+        {
+            await LoadArticle();
+        }
+    }
+
+    private async Task LoadArticle()
+    {
+        isLoading = true;
+        try
+        {
+            var query = new GetArticleByIdQuery { Id = ArticleId };
+            article = await Mediator.Send(query);
+            
+            // Increment usage count
+            if (article != null)
+            {
+                var incrementCommand = new IncrementArticleUsageCommand { ArticleId = ArticleId };
+                await Mediator.Send(incrementCommand);
+            }
+        }
+        catch
+        {
+            article = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoToFullArticle()
+    {
+        Navigation.NavigateTo($"/knowledge/{ArticleId}");
+    }
+    
+    private async Task LinkThisArticle()
+    {
+        await OnLinkArticle.InvokeAsync(ArticleId);
+    }
+
+    private async Task Close()
+    {
+        article = null;
+        await OnClose.InvokeAsync();
+    }
+}
