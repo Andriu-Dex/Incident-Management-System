@@ -233,7 +233,7 @@
 @if (showDetailModal && selectedIncident != null)
 {
     <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 9999; overflow-y: auto;" @onclick="CloseDetailModal">
-        <div style="position: relative; top: 40px; max-width: 700px; margin: 0 auto 40px auto; background: white; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);" @onclick:stopPropagation="true">
+        <div style="position: relative; top: 40px; max-width: 800px; margin: 0 auto 40px auto; background: white; border-radius: 16px; box-shadow: 0 25px 50px rgba(0,0,0,0.25);" @onclick:stopPropagation="true">
             <!-- Header del Modal -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-2xl">
                 <div class="flex items-center justify-between">
@@ -430,11 +430,10 @@
                                             </div>
                                             <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                                                 <div class="flex items-center justify-between mb-1">
-                                                    <span class="text-xs font-semibold @GetHistoryTextColor(history.Action)">@GetHistoryActionName(history.Action)</span>
+                                                    <span class="font-semibold text-sm text-gray-900">@history.UserName</span>
                                                     <span class="text-xs text-gray-500">@history.Timestamp.ToString("dd/MM/yyyy HH:mm")</span>
                                                 </div>
-                                                <p class="text-sm text-gray-700">@history.Description</p>
-                                                <p class="text-xs text-gray-500 mt-1">Por: @history.UserName</p>
+                                                <p class="text-sm @GetHistoryTextColor(history.Action)">@history.FormattedAction</p>
                                             </div>
                                         </div>
                                     }
