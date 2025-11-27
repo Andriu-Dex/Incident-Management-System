@@ -72,9 +72,9 @@
                             <span class="text-red-500">*</span>
                         </label>
                         <InputSelect @bind-Value="createDto.Type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="@IncidentType.Failure">❌ Falla</option>
-                            <option value="@IncidentType.Query">❓ Consulta</option>
-                            <option value="@IncidentType.Request">📥 Requerimiento</option>
+                            <option value="@IncidentType.Failure">Falla</option>
+                            <option value="@IncidentType.Query">Consulta</option>
+                            <option value="@IncidentType.Request">Requerimiento</option>
                         </InputSelect>
                         <ValidationMessage For="@(() => createDto.Type)" class="text-red-500 text-sm mt-1" />
                     </div>
@@ -91,10 +91,10 @@
                             <span class="text-red-500">*</span>
                         </label>
                         <InputSelect @bind-Value="createDto.Priority" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="@IncidentPriority.Low">🟢 Baja</option>
-                            <option value="@IncidentPriority.Medium">🟡 Media</option>
-                            <option value="@IncidentPriority.High">🟠 Alta</option>
-                            <option value="@IncidentPriority.Critical">🔴 Crítica</option>
+                            <option value="@IncidentPriority.Low">Baja</option>
+                            <option value="@IncidentPriority.Medium">Media</option>
+                            <option value="@IncidentPriority.High">Alta</option>
+                            <option value="@IncidentPriority.Critical">Crítica</option>
                         </InputSelect>
                         <ValidationMessage For="@(() => createDto.Priority)" class="text-red-500 text-sm mt-1" />
                     </div>

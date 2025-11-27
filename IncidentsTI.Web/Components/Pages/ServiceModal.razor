@@ -56,12 +56,12 @@
             <InputSelect @bind-Value="serviceForm.Category" 
                         class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
                 <option value="">-- Seleccione una categoría --</option>
-                <option value="@ServiceCategory.Email">📧 Correo</option>
-                <option value="@ServiceCategory.Network">📡 Red</option>
-                <option value="@ServiceCategory.AcademicSystems">📚 Sistemas Académicos</option>
-                <option value="@ServiceCategory.Hardware">💻 Hardware</option>
-                <option value="@ServiceCategory.Software">💿 Software</option>
-                <option value="@ServiceCategory.Other">📦 Otro</option>
+                <option value="@ServiceCategory.Email">Correo</option>
+                <option value="@ServiceCategory.Network">Red</option>
+                <option value="@ServiceCategory.AcademicSystems">Sistemas Académicos</option>
+                <option value="@ServiceCategory.Hardware">Hardware</option>
+                <option value="@ServiceCategory.Software">Software</option>
+                <option value="@ServiceCategory.Other">Otro</option>
             </InputSelect>
             <ValidationMessage For="@(() => serviceForm.Category)" class="text-red-500 text-sm mt-1 flex items-center">
                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
