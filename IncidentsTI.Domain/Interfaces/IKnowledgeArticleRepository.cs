@@ -74,6 +74,11 @@ public interface IKnowledgeArticleRepository
     Task UpdateAsync(KnowledgeArticle article);
     
     /// <summary>
+    /// Eliminar artículo permanentemente
+    /// </summary>
+    Task DeleteAsync(KnowledgeArticle article);
+    
+    /// <summary>
     /// Incrementar contador de uso
     /// </summary>
     Task IncrementUsageCountAsync(int articleId);

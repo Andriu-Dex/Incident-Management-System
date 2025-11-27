@@ -164,6 +164,24 @@ public class KnowledgeArticleRepository : IKnowledgeArticleRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteAsync(KnowledgeArticle article)
+    {
+        // Eliminar primero los keywords y steps relacionados
+        var keywords = _context.ArticleKeywords.Where(k => k.ArticleId == article.Id);
+        _context.ArticleKeywords.RemoveRange(keywords);
+        
+        var steps = _context.SolutionSteps.Where(s => s.ArticleId == article.Id);
+        _context.SolutionSteps.RemoveRange(steps);
+        
+        // Eliminar vínculos con incidentes
+        var links = _context.IncidentArticleLinks.Where(l => l.ArticleId == article.Id);
+        _context.IncidentArticleLinks.RemoveRange(links);
+        
+        // Eliminar el artículo
+        _context.KnowledgeArticles.Remove(article);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task IncrementUsageCountAsync(int articleId)
     {
         var article = await _context.KnowledgeArticles.FindAsync(articleId);

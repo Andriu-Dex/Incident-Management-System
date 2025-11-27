@@ -27,13 +27,30 @@
             </h1>
             <p class="text-gray-600 mt-1">Crea y administra artículos de soluciones documentadas</p>
         </div>
-        <button @onclick="OpenCreateModal" 
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Nuevo Artículo
-        </button>
+        <div class="flex items-center gap-4">
+            @if (isAdmin)
+            {
+                <!-- Super Admin Toggle -->
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-gray-600">Super Admin</span>
+                    <button @onclick="ToggleSuperAdminMode" 
+                            class="@(superAdminMode ? "bg-yellow-500" : "bg-gray-300") relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                        <span class="@(superAdminMode ? "translate-x-7" : "translate-x-1") inline-flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md transition-transform duration-200">
+                            <svg class="w-4 h-4 @(superAdminMode ? "text-yellow-500" : "text-gray-400")" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+            }
+            <button @onclick="OpenCreateModal" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Nuevo Artículo
+            </button>
+        </div>
     </div>
 
     <!-- Filters -->
@@ -164,6 +181,15 @@
                                                 </svg>
                                             }
                                         </button>
+                                        @if (superAdminMode)
+                                        {
+                                            <button @onclick="() => ConfirmDeleteArticle(article)" 
+                                                    class="text-red-600 hover:text-red-900" title="Eliminar permanentemente">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -328,6 +354,43 @@
     </div>
 }
 
+<!-- Modal de Confirmación de Eliminación -->
+@if (showDeleteModal && articleToDelete != null)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @onclick="CloseDeleteModal">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6" @onclick:stopPropagation="true">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4">
+                    <svg class="h-7 w-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Eliminar Artículo</h3>
+                <p class="text-gray-600 mb-2">
+                    ¿Estás seguro de que deseas eliminar permanentemente el artículo:
+                </p>
+                <p class="text-blue-600 font-semibold mb-4">"@articleToDelete.Title"</p>
+                <p class="text-sm text-red-600 mb-6">
+                    Esta acción no se puede deshacer y eliminará todos los pasos, keywords y vínculos asociados.
+                </p>
+                <div class="flex justify-center gap-3">
+                    <button @onclick="CloseDeleteModal" 
+                            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        Cancelar
+                    </button>
+                    <button @onclick="DeleteArticle" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private IEnumerable<KnowledgeArticleListDto> articles = new List<KnowledgeArticleListDto>();
     private List<ServiceListItem> services = new();
@@ -343,11 +406,18 @@
     
     private ArticleFormModel formModel = new();
     private string currentUserId = "";
+    
+    // Super Admin mode
+    private bool isAdmin = false;
+    private bool superAdminMode = false;
+    private bool showDeleteModal = false;
+    private KnowledgeArticleListDto? articleToDelete;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        isAdmin = authState.User.IsInRole("Administrator");
         
         await LoadServices();
         await LoadArticles();
@@ -612,6 +682,59 @@
         catch (Exception ex)
         {
             ToastService.ShowError($"Error al cambiar estado: {ex.Message}");
+        }
+    }
+
+    // Super Admin methods
+    private void ToggleSuperAdminMode()
+    {
+        superAdminMode = !superAdminMode;
+        
+        if (superAdminMode)
+        {
+            ToastService.ShowWarning("Modo Super Admin Activado");
+        }
+        else
+        {
+            ToastService.ShowInfo("Modo Super Admin Desactivado");
+        }
+    }
+
+    private void ConfirmDeleteArticle(KnowledgeArticleListDto article)
+    {
+        articleToDelete = article;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        articleToDelete = null;
+    }
+
+    private async Task DeleteArticle()
+    {
+        if (articleToDelete == null) return;
+
+        try
+        {
+            var command = new DeleteKnowledgeArticleCommand { ArticleId = articleToDelete.Id };
+            var result = await Mediator.Send(command);
+
+            if (result)
+            {
+                ToastService.ShowSuccess($"Artículo \"{articleToDelete.Title}\" eliminado permanentemente");
+                CloseDeleteModal();
+                await LoadArticles();
+            }
+            else
+            {
+                ToastService.ShowError("No se pudo eliminar el artículo");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error al eliminar: {ex.Message}");
         }
     }
 
