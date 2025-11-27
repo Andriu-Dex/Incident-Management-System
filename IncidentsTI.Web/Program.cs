@@ -68,6 +68,7 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<IIncidentCommentRepository, IncidentCommentRepository>();
             builder.Services.AddScoped<IEscalationLevelRepository, EscalationLevelRepository>();
             builder.Services.AddScoped<IIncidentEscalationRepository, IncidentEscalationRepository>();
+            builder.Services.AddScoped<IKnowledgeArticleRepository, KnowledgeArticleRepository>();
             
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
@@ -189,6 +190,13 @@ namespace IncidentsTI.Web
 
                 // Seed escalation levels
                 await DatabaseSeeder.SeedEscalationLevelsAsync(context);
+
+                // Seed knowledge articles
+                var technicianUser = await userManager.FindByEmailAsync("carlos.tech@uta.edu.ec");
+                if (technicianUser != null)
+                {
+                    await DatabaseSeeder.SeedKnowledgeArticlesAsync(context, technicianUser.Id);
+                }
             }
             catch (Exception ex)
             {

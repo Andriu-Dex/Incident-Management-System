@@ -1,0 +1,278 @@
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.DTOs.Knowledge
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@inject IMediator Mediator
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-indigo-50">
+                <h2 class="text-xl font-bold text-indigo-900 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Vincular Artículo de KB
+                </h2>
+                <button @onclick="Close" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto max-h-[calc(85vh-180px)]">
+                <!-- Search -->
+                <div class="mb-4">
+                    <div class="relative">
+                        <input type="text" 
+                               @bind="searchKeyword" 
+                               @bind:event="oninput"
+                               @onkeydown="HandleKeyDown"
+                               placeholder="Buscar artículo por palabra clave..."
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Article Selection -->
+                @if (isLoading)
+                {
+                    <div class="flex justify-center items-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                }
+                else if (!articles.Any())
+                {
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p>No se encontraron artículos</p>
+                        <p class="text-sm">Intenta con otra búsqueda</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-2 mb-4">
+                        @foreach (var article in articles)
+                        {
+                            <div class="@(selectedArticleId == article.Id ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:border-indigo-300") 
+                                        border-2 rounded-lg p-3 cursor-pointer transition-all"
+                                 @onclick="() => SelectArticle(article.Id)">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900">@article.Title</h4>
+                                        <p class="text-sm text-gray-600 line-clamp-2 mt-1">@article.ProblemDescription</p>
+                                        <div class="flex items-center gap-2 mt-2">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                @article.ServiceName
+                                            </span>
+                                            <span class="text-xs text-gray-500">@article.UsageCount usos</span>
+                                        </div>
+                                    </div>
+                                    @if (selectedArticleId == article.Id)
+                                    {
+                                        <svg class="w-6 h-6 text-indigo-600 flex-shrink-0 ml-2" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Selected Article Options -->
+                @if (selectedArticleId.HasValue)
+                {
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+                        <h4 class="font-semibold text-gray-900 mb-3">Opciones de vinculación</h4>
+                        
+                        <label class="flex items-center gap-2 mb-3">
+                            <input type="checkbox" @bind="wasHelpful" class="w-4 h-4 text-green-600 rounded focus:ring-green-500" />
+                            <span class="text-sm text-gray-700">Este artículo fue útil para resolver el incidente</span>
+                        </label>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Notas (opcional)</label>
+                            <textarea @bind="notes" rows="2"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                      placeholder="¿Cómo se utilizó este artículo?"></textarea>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
+                <button @onclick="Close" 
+                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </button>
+                <button @onclick="LinkArticle" 
+                        disabled="@(!selectedArticleId.HasValue || isLinking)"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                    @if (isLinking)
+                    {
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    }
+                    Vincular Artículo
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public int IncidentId { get; set; }
+
+    [Parameter]
+    public int ServiceId { get; set; }
+
+    [Parameter]
+    public IncidentType IncidentType { get; set; }
+
+    [Parameter]
+    public string UserId { get; set; } = "";
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnLinked { get; set; }
+
+    private IEnumerable<KnowledgeArticleListDto> articles = new List<KnowledgeArticleListDto>();
+    private string searchKeyword = "";
+    private bool isLoading = false;
+    private bool isLinking = false;
+    private int? selectedArticleId;
+    private bool wasHelpful = true;
+    private string? notes;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible && !articles.Any())
+        {
+            await LoadRelatedArticles();
+        }
+    }
+
+    private async Task LoadRelatedArticles()
+    {
+        isLoading = true;
+        try
+        {
+            var query = new GetRelatedArticlesQuery
+            {
+                ServiceId = ServiceId,
+                IncidentType = IncidentType,
+                MaxResults = 10
+            };
+            articles = await Mediator.Send(query);
+        }
+        catch
+        {
+            articles = new List<KnowledgeArticleListDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchArticles()
+    {
+        isLoading = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                await LoadRelatedArticles();
+            }
+            else
+            {
+                var query = new SearchKnowledgeArticlesQuery
+                {
+                    Keyword = searchKeyword,
+                    IncludeInactive = false
+                };
+                articles = await Mediator.Send(query);
+            }
+        }
+        catch
+        {
+            articles = new List<KnowledgeArticleListDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchArticles();
+        }
+    }
+
+    private void SelectArticle(int articleId)
+    {
+        selectedArticleId = selectedArticleId == articleId ? null : articleId;
+    }
+
+    private async Task LinkArticle()
+    {
+        if (!selectedArticleId.HasValue || string.IsNullOrEmpty(UserId))
+            return;
+
+        isLinking = true;
+        try
+        {
+            var command = new LinkArticleToIncidentCommand
+            {
+                IncidentId = IncidentId,
+                ArticleId = selectedArticleId.Value,
+                LinkedByUserId = UserId,
+                WasHelpful = wasHelpful,
+                Notes = notes
+            };
+
+            var result = await Mediator.Send(command);
+            
+            if (result)
+            {
+                await OnLinked.InvokeAsync();
+            }
+        }
+        catch
+        {
+            // Handle error silently or show toast
+        }
+        finally
+        {
+            isLinking = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        selectedArticleId = null;
+        wasHelpful = true;
+        notes = null;
+        searchKeyword = "";
+        await OnClose.InvokeAsync();
+    }
+}

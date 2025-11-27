@@ -1,0 +1,378 @@
+@page "/knowledge/{ArticleId:int}"
+@attribute [Authorize]
+@using IncidentsTI.Application.DTOs.Knowledge
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(article?.Title ?? "Artículo") - Base de Conocimiento</PageTitle>
+
+<div class="container mx-auto px-4 py-6">
+    @if (isLoading)
+    {
+        <div class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    }
+    else if (article == null)
+    {
+        <div class="bg-white rounded-lg shadow-md p-8 text-center">
+            <svg class="w-16 h-16 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Artículo no encontrado</h3>
+            <p class="text-gray-500 mb-4">El artículo solicitado no existe o ha sido eliminado</p>
+            <button @onclick="GoBack" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Volver a la Base de Conocimiento
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Breadcrumb -->
+        <nav class="mb-6 text-sm">
+            <ol class="flex items-center space-x-2">
+                <li>
+                    <a href="/knowledge" class="text-blue-600 hover:text-blue-800">Base de Conocimiento</a>
+                </li>
+                <li class="text-gray-400">/</li>
+                <li class="text-gray-600 truncate max-w-xs">@article.Title</li>
+            </ol>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Article Header -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <h1 class="text-2xl font-bold text-gray-900">@article.Title</h1>
+                        <div class="flex gap-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                @article.ServiceName
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium @GetIncidentTypeBadgeClass(article.IncidentType)">
+                                @GetIncidentTypeName(article.IncidentType)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Problem Description -->
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Descripción del Problema
+                        </h2>
+                        <p class="text-gray-700 whitespace-pre-line">@article.ProblemDescription</p>
+                    </div>
+
+                    <!-- Keywords -->
+                    @if (article.Keywords.Any())
+                    {
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var keyword in article.Keywords)
+                            {
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                                    #@keyword
+                                </span>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Solution Steps -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Pasos de Solución
+                    </h2>
+
+                    @if (article.Steps.Any())
+                    {
+                        <div class="space-y-4">
+                            @foreach (var step in article.Steps.OrderBy(s => s.StepNumber))
+                            {
+                                <div class="relative pl-10 pb-4 @(step.StepNumber < article.Steps.Count ? "border-l-2 border-blue-200" : "")"
+                                     style="margin-left: 12px;">
+                                    <!-- Step Number Circle -->
+                                    <div class="absolute left-0 top-0 -translate-x-1/2 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
+                                        @step.StepNumber
+                                    </div>
+                                    
+                                    <div class="bg-gray-50 rounded-lg p-4 ml-2">
+                                        <h4 class="font-semibold text-gray-900 mb-2">@step.Title</h4>
+                                        <p class="text-gray-700 whitespace-pre-line">@step.Description</p>
+                                        
+                                        @if (!string.IsNullOrEmpty(step.Note))
+                                        {
+                                            <div class="mt-3 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                                                <div class="flex items-start gap-2">
+                                                    <svg class="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span class="text-yellow-800 text-sm">@step.Note</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-gray-500 italic">No hay pasos documentados para este artículo.</p>
+                    }
+                </div>
+
+                <!-- Recommendations -->
+                @if (!string.IsNullOrEmpty(article.Recommendations))
+                {
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-md p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            Recomendaciones
+                        </h2>
+                        <p class="text-gray-700 whitespace-pre-line">@article.Recommendations</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Article Info Card -->
+                <div class="bg-white rounded-lg shadow-md p-5">
+                    <h3 class="font-semibold text-gray-900 mb-4">Información del Artículo</h3>
+                    
+                    <div class="space-y-3">
+                        <!-- Estimated Time -->
+                        @if (article.EstimatedResolutionTimeMinutes.HasValue)
+                        {
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500">Tiempo estimado</div>
+                                    <div class="font-medium text-gray-900">@article.EstimatedTimeFormatted</div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Usage Count -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Veces utilizado</div>
+                                <div class="font-medium text-gray-900">@article.UsageCount</div>
+                            </div>
+                        </div>
+
+                        <!-- Author -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Creado por</div>
+                                <div class="font-medium text-gray-900">@article.AuthorName</div>
+                            </div>
+                        </div>
+
+                        <!-- Origin Incident -->
+                        @if (article.OriginIncidentId.HasValue)
+                        {
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500">Incidente origen</div>
+                                    <a href="/incident/@article.OriginIncidentId" class="font-medium text-blue-600 hover:text-blue-800">
+                                        @(article.OriginIncidentTicket ?? $"#{article.OriginIncidentId}")
+                                    </a>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Created Date -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Fecha de creación</div>
+                                <div class="font-medium text-gray-900">@FormatDate(article.CreatedAt)</div>
+                            </div>
+                        </div>
+
+                        @if (article.UpdatedAt.HasValue)
+                        {
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500">Última actualización</div>
+                                    <div class="font-medium text-gray-900">@FormatDate(article.UpdatedAt.Value)</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                @if (relatedArticles.Any())
+                {
+                    <div class="bg-white rounded-lg shadow-md p-5">
+                        <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Artículos Relacionados
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            @foreach (var related in relatedArticles)
+                            {
+                                <a href="/knowledge/@related.Id" 
+                                   class="block p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
+                                    <div class="font-medium text-gray-900 text-sm line-clamp-2 hover:text-blue-600">
+                                        @related.Title
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        @related.ServiceName • @related.UsageCount usos
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Back Button -->
+                <button @onclick="GoBack" 
+                        class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Volver a la Base de Conocimiento
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int ArticleId { get; set; }
+
+    private KnowledgeArticleDto? article;
+    private IEnumerable<KnowledgeArticleListDto> relatedArticles = new List<KnowledgeArticleListDto>();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadArticle();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadArticle();
+    }
+
+    private async Task LoadArticle()
+    {
+        isLoading = true;
+        try
+        {
+            var query = new GetArticleByIdQuery { Id = ArticleId };
+            article = await Mediator.Send(query);
+
+            if (article != null)
+            {
+                await LoadRelatedArticles();
+            }
+        }
+        catch (Exception)
+        {
+            article = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadRelatedArticles()
+    {
+        try
+        {
+            if (article == null) return;
+
+            var query = new GetRelatedArticlesQuery
+            {
+                ServiceId = article.ServiceId,
+                IncidentType = article.IncidentType,
+                ExcludeArticleId = article.Id,
+                MaxResults = 5
+            };
+            relatedArticles = await Mediator.Send(query);
+        }
+        catch
+        {
+            relatedArticles = new List<KnowledgeArticleListDto>();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/knowledge");
+    }
+
+    private string GetIncidentTypeName(IncidentType type) => type switch
+    {
+        IncidentType.Failure => "Fallo",
+        IncidentType.Query => "Consulta",
+        IncidentType.Request => "Solicitud",
+        _ => "Desconocido"
+    };
+
+    private string GetIncidentTypeBadgeClass(IncidentType type) => type switch
+    {
+        IncidentType.Failure => "bg-red-100 text-red-800",
+        IncidentType.Query => "bg-purple-100 text-purple-800",
+        IncidentType.Request => "bg-green-100 text-green-800",
+        _ => "bg-gray-100 text-gray-800"
+    };
+
+    private string FormatDate(DateTime date)
+    {
+        var ecuadorTime = TimeZoneInfo.ConvertTimeFromUtc(date, 
+            TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time"));
+        return ecuadorTime.ToString("dd/MM/yyyy HH:mm");
+    }
+}

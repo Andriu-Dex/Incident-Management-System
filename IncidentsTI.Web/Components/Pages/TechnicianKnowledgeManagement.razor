@@ -1,0 +1,598 @@
+@page "/technician/knowledge"
+@attribute [Authorize(Roles = "Technician,Administrator")]
+@using IncidentsTI.Application.DTOs.Knowledge
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.Queries
+@using IncidentsTI.Domain.Enums
+@using MediatR
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IMediator Mediator
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Gestión de Base de Conocimiento - Sistema de Incidentes TI</PageTitle>
+
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Gestión de Base de Conocimiento
+            </h1>
+            <p class="text-gray-600 mt-1">Crea y administra artículos de soluciones documentadas</p>
+        </div>
+        <button @onclick="OpenCreateModal" 
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Nuevo Artículo
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="md:col-span-2">
+                <input type="text" 
+                       @bind="searchKeyword" 
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown"
+                       placeholder="Buscar artículos..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+            <div>
+                <select @bind="filterStatus" @bind:after="LoadArticles" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">Todos los estados</option>
+                    <option value="active">Solo activos</option>
+                    <option value="inactive">Solo inactivos</option>
+                </select>
+            </div>
+            <div>
+                <button @onclick="LoadArticles" 
+                        class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Articles Table -->
+    @if (isLoading)
+    {
+        <div class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    }
+    else if (!articles.Any())
+    {
+        <div class="bg-white rounded-lg shadow-md p-8 text-center">
+            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay artículos</h3>
+            <p class="text-gray-500 mb-4">Crea tu primer artículo de conocimiento</p>
+            <button @onclick="OpenCreateModal" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Crear Artículo
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artículo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servicio</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Usos</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var article in articles)
+                        {
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900">@article.Title</div>
+                                    <div class="text-sm text-gray-500 truncate max-w-xs">@article.ProblemDescription</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm text-gray-900">@article.ServiceName</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @GetIncidentTypeBadgeClass(article.IncidentType)">
+                                        @GetIncidentTypeName(article.IncidentType)
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <span class="text-sm text-gray-900">@article.UsageCount</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    @if (article.IsActive)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            Inactivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button @onclick="() => ViewArticle(article.Id)" 
+                                                class="text-blue-600 hover:text-blue-900" title="Ver">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
+                                        <button @onclick="() => OpenEditModal(article.Id)" 
+                                                class="text-yellow-600 hover:text-yellow-900" title="Editar">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <button @onclick="() => ToggleStatus(article.Id)" 
+                                                class="@(article.IsActive ? "text-gray-600 hover:text-gray-900" : "text-green-600 hover:text-green-900")"
+                                                title="@(article.IsActive ? "Desactivar" : "Activar")">
+                                            @if (article.IsActive)
+                                            {
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                </svg>
+                                            }
+                                            else
+                                            {
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            }
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Create/Edit Modal -->
+@if (showModal)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900">
+                    @(isEditing ? "Editar Artículo" : "Nuevo Artículo")
+                </h2>
+                <button @onclick="CloseModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                <div class="space-y-6">
+                    <!-- Title -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+                        <input type="text" @bind="formModel.Title"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Ej: Solución a problemas de conexión WiFi" />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Service -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Servicio *</label>
+                            <select @bind="formModel.ServiceId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="0">Seleccionar servicio</option>
+                                @foreach (var service in services)
+                                {
+                                    <option value="@service.Id">@service.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Incident Type -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Problema *</label>
+                            <select @bind="formModel.IncidentType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="@IncidentType.Failure">Fallo</option>
+                                <option value="@IncidentType.Query">Consulta</option>
+                                <option value="@IncidentType.Request">Solicitud</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Problem Description -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descripción del Problema *</label>
+                        <textarea @bind="formModel.ProblemDescription" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Describe el problema que resuelve este artículo..."></textarea>
+                    </div>
+
+                    <!-- Solution Steps -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Pasos de Solución</label>
+                            <button type="button" @onclick="AddStep" 
+                                    class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Agregar paso
+                            </button>
+                        </div>
+                        
+                        @foreach (var step in formModel.Steps.OrderBy(s => s.StepNumber))
+                        {
+                            <div class="bg-gray-50 rounded-lg p-4 mb-3">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-bold">
+                                        @step.StepNumber
+                                    </span>
+                                    <button type="button" @onclick="() => RemoveStep(step)" 
+                                            class="text-red-500 hover:text-red-700">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="space-y-3">
+                                    <input type="text" @bind="step.Title"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                           placeholder="Título del paso" />
+                                    <textarea @bind="step.Description" rows="2"
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                              placeholder="Descripción detallada del paso"></textarea>
+                                    <input type="text" @bind="step.Note"
+                                           class="w-full px-3 py-2 border border-yellow-300 bg-yellow-50 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                                           placeholder="Nota importante (opcional)" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Recomendaciones</label>
+                        <textarea @bind="formModel.Recommendations" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Recomendaciones adicionales para el técnico..."></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Estimated Time -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tiempo estimado (minutos)</label>
+                            <input type="number" @bind="formModel.EstimatedResolutionTimeMinutes" min="0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Ej: 15" />
+                        </div>
+
+                        <!-- Keywords -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Palabras clave</label>
+                            <input type="text" @bind="formModel.Keywords"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="wifi, conexión, internet (separadas por coma)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button @onclick="CloseModal" 
+                        class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    Cancelar
+                </button>
+                <button @onclick="SaveArticle" disabled="@isSaving"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                    @if (isSaving)
+                    {
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    }
+                    @(isEditing ? "Guardar Cambios" : "Crear Artículo")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<KnowledgeArticleListDto> articles = new List<KnowledgeArticleListDto>();
+    private List<ServiceListItem> services = new();
+    
+    private string searchKeyword = "";
+    private string filterStatus = "all";
+    private bool isLoading = true;
+    
+    private bool showModal = false;
+    private bool isEditing = false;
+    private bool isSaving = false;
+    private int? editingArticleId;
+    
+    private ArticleFormModel formModel = new();
+    private string currentUserId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        
+        await LoadServices();
+        await LoadArticles();
+    }
+
+    private async Task LoadServices()
+    {
+        try
+        {
+            var result = await Mediator.Send(new Application.Queries.GetAllServicesQuery());
+            services = result.Select(s => new ServiceListItem { Id = s.Id, Name = s.Name }).ToList();
+        }
+        catch
+        {
+            services = new List<ServiceListItem>();
+        }
+    }
+
+    private async Task LoadArticles()
+    {
+        isLoading = true;
+        try
+        {
+            var query = new SearchKnowledgeArticlesQuery
+            {
+                Keyword = string.IsNullOrWhiteSpace(searchKeyword) ? null : searchKeyword,
+                IncludeInactive = true
+            };
+            
+            var allArticles = await Mediator.Send(query);
+            
+            articles = filterStatus switch
+            {
+                "active" => allArticles.Where(a => a.IsActive),
+                "inactive" => allArticles.Where(a => !a.IsActive),
+                _ => allArticles
+            };
+        }
+        catch
+        {
+            articles = new List<KnowledgeArticleListDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoadArticles();
+        }
+    }
+
+    private void ViewArticle(int articleId)
+    {
+        Navigation.NavigateTo($"/knowledge/{articleId}");
+    }
+
+    private void OpenCreateModal()
+    {
+        isEditing = false;
+        editingArticleId = null;
+        formModel = new ArticleFormModel();
+        showModal = true;
+    }
+
+    private async Task OpenEditModal(int articleId)
+    {
+        try
+        {
+            var article = await Mediator.Send(new GetArticleByIdQuery { Id = articleId });
+            if (article == null) return;
+
+            isEditing = true;
+            editingArticleId = articleId;
+            formModel = new ArticleFormModel
+            {
+                Title = article.Title,
+                ServiceId = article.ServiceId,
+                IncidentType = article.IncidentType,
+                ProblemDescription = article.ProblemDescription,
+                Recommendations = article.Recommendations,
+                EstimatedResolutionTimeMinutes = article.EstimatedResolutionTimeMinutes,
+                Keywords = string.Join(", ", article.Keywords),
+                Steps = article.Steps.Select(s => new StepFormModel
+                {
+                    StepNumber = s.StepNumber,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Note = s.Note
+                }).ToList()
+            };
+            showModal = true;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al cargar el artículo: {ex.Message}");
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        formModel = new ArticleFormModel();
+    }
+
+    private void AddStep()
+    {
+        var nextNumber = formModel.Steps.Any() ? formModel.Steps.Max(s => s.StepNumber) + 1 : 1;
+        formModel.Steps.Add(new StepFormModel { StepNumber = nextNumber });
+    }
+
+    private void RemoveStep(StepFormModel step)
+    {
+        formModel.Steps.Remove(step);
+        // Renumber remaining steps
+        var i = 1;
+        foreach (var s in formModel.Steps.OrderBy(s => s.StepNumber))
+        {
+            s.StepNumber = i++;
+        }
+    }
+
+    private async Task SaveArticle()
+    {
+        if (string.IsNullOrWhiteSpace(formModel.Title) || 
+            formModel.ServiceId == 0 || 
+            string.IsNullOrWhiteSpace(formModel.ProblemDescription))
+        {
+            await JS.InvokeVoidAsync("alert", "Por favor complete los campos obligatorios");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            if (isEditing && editingArticleId.HasValue)
+            {
+                var command = new UpdateKnowledgeArticleCommand
+                {
+                    Id = editingArticleId.Value,
+                    Title = formModel.Title,
+                    ServiceId = formModel.ServiceId,
+                    IncidentType = formModel.IncidentType,
+                    ProblemDescription = formModel.ProblemDescription,
+                    Recommendations = formModel.Recommendations,
+                    EstimatedResolutionTimeMinutes = formModel.EstimatedResolutionTimeMinutes,
+                    Keywords = formModel.Keywords,
+                    Steps = formModel.Steps.Select(s => new CreateSolutionStepDto
+                    {
+                        StepNumber = s.StepNumber,
+                        Title = s.Title,
+                        Description = s.Description,
+                        Note = s.Note
+                    }).ToList()
+                };
+                await Mediator.Send(command);
+            }
+            else
+            {
+                var command = new CreateKnowledgeArticleCommand
+                {
+                    Title = formModel.Title,
+                    ServiceId = formModel.ServiceId,
+                    IncidentType = formModel.IncidentType,
+                    ProblemDescription = formModel.ProblemDescription,
+                    Recommendations = formModel.Recommendations,
+                    EstimatedResolutionTimeMinutes = formModel.EstimatedResolutionTimeMinutes,
+                    AuthorId = currentUserId,
+                    Keywords = formModel.Keywords,
+                    Steps = formModel.Steps.Select(s => new CreateSolutionStepDto
+                    {
+                        StepNumber = s.StepNumber,
+                        Title = s.Title,
+                        Description = s.Description,
+                        Note = s.Note
+                    }).ToList()
+                };
+                await Mediator.Send(command);
+            }
+
+            CloseModal();
+            await LoadArticles();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleStatus(int articleId)
+    {
+        try
+        {
+            await Mediator.Send(new ToggleArticleStatusCommand { ArticleId = articleId });
+            await LoadArticles();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al cambiar estado: {ex.Message}");
+        }
+    }
+
+    private string GetIncidentTypeName(IncidentType type) => type switch
+    {
+        IncidentType.Failure => "Fallo",
+        IncidentType.Query => "Consulta",
+        IncidentType.Request => "Solicitud",
+        _ => "Desconocido"
+    };
+
+    private string GetIncidentTypeBadgeClass(IncidentType type) => type switch
+    {
+        IncidentType.Failure => "bg-red-100 text-red-800",
+        IncidentType.Query => "bg-purple-100 text-purple-800",
+        IncidentType.Request => "bg-green-100 text-green-800",
+        _ => "bg-gray-100 text-gray-800"
+    };
+
+    private class ServiceListItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
+    private class ArticleFormModel
+    {
+        public string Title { get; set; } = "";
+        public int ServiceId { get; set; }
+        public IncidentType IncidentType { get; set; } = IncidentType.Failure;
+        public string ProblemDescription { get; set; } = "";
+        public string? Recommendations { get; set; }
+        public int? EstimatedResolutionTimeMinutes { get; set; }
+        public string? Keywords { get; set; }
+        public List<StepFormModel> Steps { get; set; } = new();
+    }
+
+    private class StepFormModel
+    {
+        public int StepNumber { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string? Note { get; set; }
+    }
+}

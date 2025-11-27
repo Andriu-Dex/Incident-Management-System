@@ -21,6 +21,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<IncidentComment> IncidentComments { get; set; }
     public DbSet<EscalationLevel> EscalationLevels { get; set; }
     public DbSet<IncidentEscalation> IncidentEscalations { get; set; }
+    
+    // Knowledge Base
+    public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
+    public DbSet<SolutionStep> SolutionSteps { get; set; }
+    public DbSet<ArticleKeyword> ArticleKeywords { get; set; }
+    public DbSet<IncidentArticleLink> IncidentArticleLinks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +49,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         // Configure IncidentEscalation relationships
         ConfigureIncidentEscalationRelationships(modelBuilder);
+        
+        // Configure Knowledge Base relationships
+        ConfigureKnowledgeBaseRelationships(modelBuilder);
 
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -210,5 +219,82 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new IdentityRole { Id = "4", Name = "Technician", NormalizedName = "TECHNICIAN" },
             new IdentityRole { Id = "5", Name = "Administrator", NormalizedName = "ADMINISTRATOR" }
         );
+    }
+
+    private void ConfigureKnowledgeBaseRelationships(ModelBuilder modelBuilder)
+    {
+        // KnowledgeArticle -> Service
+        modelBuilder.Entity<KnowledgeArticle>()
+            .HasOne(a => a.Service)
+            .WithMany()
+            .HasForeignKey(a => a.ServiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // KnowledgeArticle -> Author (User)
+        modelBuilder.Entity<KnowledgeArticle>()
+            .HasOne(a => a.Author)
+            .WithMany()
+            .HasForeignKey(a => a.AuthorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // KnowledgeArticle -> OriginIncident (opcional)
+        modelBuilder.Entity<KnowledgeArticle>()
+            .HasOne(a => a.OriginIncident)
+            .WithMany()
+            .HasForeignKey(a => a.OriginIncidentId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // SolutionStep -> KnowledgeArticle
+        modelBuilder.Entity<SolutionStep>()
+            .HasOne(s => s.Article)
+            .WithMany(a => a.Steps)
+            .HasForeignKey(s => s.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ArticleKeyword -> KnowledgeArticle
+        modelBuilder.Entity<ArticleKeyword>()
+            .HasOne(k => k.Article)
+            .WithMany(a => a.Keywords)
+            .HasForeignKey(k => k.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentArticleLink -> Incident
+        modelBuilder.Entity<IncidentArticleLink>()
+            .HasOne(l => l.Incident)
+            .WithMany()
+            .HasForeignKey(l => l.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentArticleLink -> KnowledgeArticle
+        modelBuilder.Entity<IncidentArticleLink>()
+            .HasOne(l => l.Article)
+            .WithMany(a => a.LinkedIncidents)
+            .HasForeignKey(l => l.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentArticleLink -> User (LinkedBy)
+        modelBuilder.Entity<IncidentArticleLink>()
+            .HasOne(l => l.LinkedByUser)
+            .WithMany()
+            .HasForeignKey(l => l.LinkedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes for better query performance
+        modelBuilder.Entity<KnowledgeArticle>()
+            .HasIndex(a => a.ServiceId);
+
+        modelBuilder.Entity<KnowledgeArticle>()
+            .HasIndex(a => a.IncidentType);
+
+        modelBuilder.Entity<KnowledgeArticle>()
+            .HasIndex(a => a.IsActive);
+
+        modelBuilder.Entity<ArticleKeyword>()
+            .HasIndex(k => k.Keyword);
+
+        modelBuilder.Entity<IncidentArticleLink>()
+            .HasIndex(l => new { l.IncidentId, l.ArticleId })
+            .IsUnique();
     }
 }
