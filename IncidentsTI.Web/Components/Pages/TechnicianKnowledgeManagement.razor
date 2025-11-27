@@ -10,7 +10,7 @@
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
-@inject IJSRuntime JS
+@inject IToastService ToastService
 @rendermode InteractiveServer
 
 <PageTitle>Gestión de Base de Conocimiento - Sistema de Incidentes TI</PageTitle>
@@ -239,13 +239,7 @@
                     <div>
                         <div class="flex justify-between items-center mb-2">
                             <label class="block text-sm font-medium text-gray-700">Pasos de Solución</label>
-                            <button type="button" @onclick="AddStep" 
-                                    class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                Agregar paso
-                            </button>
+                            <span class="text-xs text-gray-500">Los pasos vacíos se eliminarán automáticamente</span>
                         </div>
                         
                         @foreach (var step in formModel.Steps.OrderBy(s => s.StepNumber))
@@ -255,21 +249,31 @@
                                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-sm font-bold">
                                         @step.StepNumber
                                     </span>
-                                    <button type="button" @onclick="() => RemoveStep(step)" 
-                                            class="text-red-500 hover:text-red-700">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
+                                    @if (formModel.Steps.Count > 1)
+                                    {
+                                        <button type="button" @onclick="() => RemoveStep(step)" 
+                                                class="text-red-500 hover:text-red-700">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="w-5"></div>
+                                    }
                                 </div>
                                 <div class="space-y-3">
-                                    <input type="text" @bind="step.Title"
+                                    <input type="text" value="@step.Title" 
+                                           @oninput="(e) => { step.Title = e.Value?.ToString() ?? string.Empty; OnStepInput(step); }"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                            placeholder="Título del paso" />
-                                    <textarea @bind="step.Description" rows="2"
+                                    <textarea value="@step.Description" 
+                                              @oninput="(e) => { step.Description = e.Value?.ToString() ?? string.Empty; OnStepInput(step); }" rows="2"
                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                               placeholder="Descripción detallada del paso"></textarea>
-                                    <input type="text" @bind="step.Note"
+                                    <input type="text" value="@step.Note" 
+                                           @oninput="(e) => { step.Note = e.Value?.ToString(); OnStepInput(step); }"
                                            class="w-full px-3 py-2 border border-yellow-300 bg-yellow-50 rounded-lg focus:ring-2 focus:ring-yellow-500"
                                            placeholder="Nota importante (opcional)" />
                                 </div>
@@ -410,6 +414,8 @@
         isEditing = false;
         editingArticleId = null;
         formModel = new ArticleFormModel();
+        // Iniciar con un paso vacío
+        formModel.Steps.Add(new StepFormModel { StepNumber = 1 });
         showModal = true;
     }
 
@@ -439,11 +445,23 @@
                     Note = s.Note
                 }).ToList()
             };
+            
+            // Agregar un paso vacío al final para permitir agregar más
+            if (formModel.Steps.Any())
+            {
+                var nextNumber = formModel.Steps.Max(s => s.StepNumber) + 1;
+                formModel.Steps.Add(new StepFormModel { StepNumber = nextNumber });
+            }
+            else
+            {
+                formModel.Steps.Add(new StepFormModel { StepNumber = 1 });
+            }
+            
             showModal = true;
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al cargar el artículo: {ex.Message}");
+            ToastService.ShowError($"Error al cargar el artículo: {ex.Message}");
         }
     }
 
@@ -451,6 +469,25 @@
     {
         showModal = false;
         formModel = new ArticleFormModel();
+    }
+
+    private void OnStepInput(StepFormModel step)
+    {
+        // Si el paso actual tiene contenido y es el último, agregar uno nuevo vacío
+        if (IsStepWithContent(step))
+        {
+            var lastStep = formModel.Steps.OrderByDescending(s => s.StepNumber).FirstOrDefault();
+            if (lastStep != null && lastStep.StepNumber == step.StepNumber)
+            {
+                AddStep();
+            }
+        }
+    }
+
+    private bool IsStepWithContent(StepFormModel step)
+    {
+        return !string.IsNullOrWhiteSpace(step.Title) || 
+               !string.IsNullOrWhiteSpace(step.Description);
     }
 
     private void AddStep()
@@ -461,6 +498,8 @@
 
     private void RemoveStep(StepFormModel step)
     {
+        if (formModel.Steps.Count <= 1) return;
+        
         formModel.Steps.Remove(step);
         // Renumber remaining steps
         var i = 1;
@@ -470,19 +509,38 @@
         }
     }
 
+    private List<StepFormModel> GetValidSteps()
+    {
+        // Filtrar solo los pasos que tienen contenido
+        return formModel.Steps
+            .Where(s => !string.IsNullOrWhiteSpace(s.Title) || !string.IsNullOrWhiteSpace(s.Description))
+            .OrderBy(s => s.StepNumber)
+            .Select((s, index) => new StepFormModel
+            {
+                StepNumber = index + 1,
+                Title = s.Title,
+                Description = s.Description,
+                Note = s.Note
+            })
+            .ToList();
+    }
+
     private async Task SaveArticle()
     {
         if (string.IsNullOrWhiteSpace(formModel.Title) || 
             formModel.ServiceId == 0 || 
             string.IsNullOrWhiteSpace(formModel.ProblemDescription))
         {
-            await JS.InvokeVoidAsync("alert", "Por favor complete los campos obligatorios");
+            ToastService.ShowError("Por favor complete los campos obligatorios");
             return;
         }
 
         isSaving = true;
         try
         {
+            // Obtener solo los pasos válidos (con contenido)
+            var validSteps = GetValidSteps();
+            
             if (isEditing && editingArticleId.HasValue)
             {
                 var command = new UpdateKnowledgeArticleCommand
@@ -495,7 +553,7 @@
                     Recommendations = formModel.Recommendations,
                     EstimatedResolutionTimeMinutes = formModel.EstimatedResolutionTimeMinutes,
                     Keywords = formModel.Keywords,
-                    Steps = formModel.Steps.Select(s => new CreateSolutionStepDto
+                    Steps = validSteps.Select(s => new CreateSolutionStepDto
                     {
                         StepNumber = s.StepNumber,
                         Title = s.Title,
@@ -504,6 +562,7 @@
                     }).ToList()
                 };
                 await Mediator.Send(command);
+                ToastService.ShowSuccess("Artículo actualizado correctamente");
             }
             else
             {
@@ -517,7 +576,7 @@
                     EstimatedResolutionTimeMinutes = formModel.EstimatedResolutionTimeMinutes,
                     AuthorId = currentUserId,
                     Keywords = formModel.Keywords,
-                    Steps = formModel.Steps.Select(s => new CreateSolutionStepDto
+                    Steps = validSteps.Select(s => new CreateSolutionStepDto
                     {
                         StepNumber = s.StepNumber,
                         Title = s.Title,
@@ -526,6 +585,7 @@
                     }).ToList()
                 };
                 await Mediator.Send(command);
+                ToastService.ShowSuccess("Artículo creado correctamente");
             }
 
             CloseModal();
@@ -533,7 +593,7 @@
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+            ToastService.ShowError($"Error al guardar: {ex.Message}");
         }
         finally
         {
@@ -547,10 +607,11 @@
         {
             await Mediator.Send(new ToggleArticleStatusCommand { ArticleId = articleId });
             await LoadArticles();
+            ToastService.ShowSuccess("Estado actualizado correctamente");
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al cambiar estado: {ex.Message}");
+            ToastService.ShowError($"Error al cambiar estado: {ex.Message}");
         }
     }
 

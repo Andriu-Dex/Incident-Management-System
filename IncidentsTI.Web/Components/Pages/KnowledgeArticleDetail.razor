@@ -1,5 +1,6 @@
 @page "/knowledge/{ArticleId:int}"
 @attribute [Authorize]
+@using IncidentsTI.Application.Commands
 @using IncidentsTI.Application.DTOs.Knowledge
 @using IncidentsTI.Application.Queries
 @using IncidentsTI.Domain.Enums
@@ -347,6 +348,7 @@
     private KnowledgeArticleDto? article;
     private IEnumerable<KnowledgeArticleListDto> relatedArticles = new List<KnowledgeArticleListDto>();
     private bool isLoading = true;
+    private int? lastViewedArticleId; // Para evitar incrementos duplicados
 
     protected override async Task OnInitializedAsync()
     {
@@ -355,7 +357,11 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        await LoadArticle();
+        // Solo recargar si cambió el ArticleId (navegación entre artículos)
+        if (article != null && article.Id != ArticleId)
+        {
+            await LoadArticle();
+        }
     }
 
     private async Task LoadArticle()
@@ -368,6 +374,14 @@
 
             if (article != null)
             {
+                // Incrementar contador solo si no hemos visto este artículo en esta sesión
+                if (lastViewedArticleId != ArticleId)
+                {
+                    await Mediator.Send(new IncrementArticleUsageCommand { ArticleId = ArticleId });
+                    article.UsageCount++; // Actualizar localmente para mostrar el nuevo valor
+                    lastViewedArticleId = ArticleId;
+                }
+                
                 await LoadRelatedArticles();
             }
         }
