@@ -62,6 +62,8 @@ public class GetAllIncidentsQueryHandler : IRequestHandler<GetAllIncidentsQuery,
                 TicketNumber = incident.TicketNumber,
                 Title = incident.Title,
                 ServiceName = service?.Name ?? "",
+                Type = incident.Type,
+                TypeName = GetTypeName(incident.Type),
                 Status = incident.Status,
                 StatusName = GetStatusName(incident.Status),
                 Priority = incident.Priority,
@@ -74,6 +76,17 @@ public class GetAllIncidentsQueryHandler : IRequestHandler<GetAllIncidentsQuery,
         }
 
         return result.OrderByDescending(i => i.CreatedAt);
+    }
+
+    private string GetTypeName(Domain.Enums.IncidentType type)
+    {
+        return type switch
+        {
+            Domain.Enums.IncidentType.Failure => "Falla",
+            Domain.Enums.IncidentType.Query => "Consulta",
+            Domain.Enums.IncidentType.Request => "Requerimiento",
+            _ => type.ToString()
+        };
     }
 
     private string GetPriorityName(Domain.Enums.IncidentPriority priority)

@@ -395,6 +395,22 @@
 }
 
 @code {
+    // Query parameters for pre-filling from incident
+    [SupplyParameterFromQuery]
+    public string? fromIncident { get; set; }
+    
+    [SupplyParameterFromQuery]
+    public string? serviceId { get; set; }
+    
+    [SupplyParameterFromQuery]
+    public string? type { get; set; }
+    
+    [SupplyParameterFromQuery]
+    public string? problemDescription { get; set; }
+    
+    [SupplyParameterFromQuery]
+    public string? title { get; set; }
+
     private IEnumerable<KnowledgeArticleListDto> articles = new List<KnowledgeArticleListDto>();
     private List<ServiceListItem> services = new();
     
@@ -406,6 +422,7 @@
     private bool isEditing = false;
     private bool isSaving = false;
     private int? editingArticleId;
+    private int? originIncidentId; // ID del incidente de origen si se crea desde un incidente
     
     private ArticleFormModel formModel = new();
     private string currentUserId = "";
@@ -428,6 +445,12 @@
         
         await LoadServices();
         await LoadArticles();
+        
+        // Si viene de un incidente, abrir modal pre-llenado
+        if (!string.IsNullOrEmpty(fromIncident) && int.TryParse(fromIncident, out var incidentId))
+        {
+            OpenCreateModalFromIncident(incidentId);
+        }
     }
     
     public void Dispose()
@@ -516,10 +539,48 @@
     {
         isEditing = false;
         editingArticleId = null;
+        originIncidentId = null;
         formModel = new ArticleFormModel();
         // Iniciar con un paso vacío
         formModel.Steps.Add(new StepFormModel { StepNumber = 1 });
         showModal = true;
+    }
+    
+    private void OpenCreateModalFromIncident(int incidentId)
+    {
+        isEditing = false;
+        editingArticleId = null;
+        originIncidentId = incidentId;
+        
+        formModel = new ArticleFormModel();
+        
+        // Pre-llenar con datos del incidente
+        if (!string.IsNullOrEmpty(title))
+        {
+            formModel.Title = Uri.UnescapeDataString(title);
+        }
+        
+        if (!string.IsNullOrEmpty(serviceId) && int.TryParse(serviceId, out var svcId))
+        {
+            formModel.ServiceId = svcId;
+        }
+        
+        if (!string.IsNullOrEmpty(type) && Enum.TryParse<IncidentType>(type, out var incidentType))
+        {
+            formModel.IncidentType = incidentType;
+        }
+        
+        if (!string.IsNullOrEmpty(problemDescription))
+        {
+            formModel.ProblemDescription = Uri.UnescapeDataString(problemDescription);
+        }
+        
+        // Iniciar con un paso vacío
+        formModel.Steps.Add(new StepFormModel { StepNumber = 1 });
+        showModal = true;
+        
+        // Limpiar los parámetros de la URL para que no se vuelva a abrir al navegar
+        Navigation.NavigateTo("/technician/knowledge", false, true);
     }
 
     private async Task OpenEditModal(int articleId)
@@ -572,6 +633,7 @@
     {
         showModal = false;
         formModel = new ArticleFormModel();
+        originIncidentId = null;
     }
 
     private void OnStepInput(StepFormModel step)
@@ -679,6 +741,7 @@
                     EstimatedResolutionTimeMinutes = formModel.EstimatedResolutionTimeMinutes,
                     AuthorId = currentUserId,
                     Keywords = formModel.Keywords,
+                    OriginIncidentId = originIncidentId,
                     Steps = validSteps.Select(s => new CreateSolutionStepDto
                     {
                         StepNumber = s.StepNumber,
@@ -688,7 +751,11 @@
                     }).ToList()
                 };
                 await Mediator.Send(command);
-                ToastService.ShowSuccess("Artículo creado correctamente");
+                
+                var successMessage = originIncidentId.HasValue 
+                    ? $"Artículo creado desde incidente #{originIncidentId}" 
+                    : "Artículo creado correctamente";
+                ToastService.ShowSuccess(successMessage);
             }
 
             CloseModal();

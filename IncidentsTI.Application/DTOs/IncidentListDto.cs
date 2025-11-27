@@ -8,6 +8,8 @@ public class IncidentListDto
     public string TicketNumber { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
+    public IncidentType Type { get; set; }
+    public string TypeName { get; set; } = string.Empty;
     public IncidentStatus Status { get; set; }
     public string StatusName { get; set; } = string.Empty;
     public IncidentPriority Priority { get; set; }
