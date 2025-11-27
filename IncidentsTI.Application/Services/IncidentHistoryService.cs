@@ -15,6 +15,7 @@ public interface IIncidentHistoryService
     Task RecordTypeChange(int incidentId, string userId, IncidentType oldType, IncidentType newType);
     Task RecordServiceChange(int incidentId, string userId, string oldServiceName, string newServiceName);
     Task RecordAssignment(int incidentId, string userId, string? oldAssigneeName, string newAssigneeName);
+    Task RecordEscalationAsync(int incidentId, string userId, string fromLevelName, string toLevelName, string reason);
 }
 
 public class IncidentHistoryService : IIncidentHistoryService
@@ -109,6 +110,22 @@ public class IncidentHistoryService : IIncidentHistoryService
             Action = string.IsNullOrEmpty(oldAssigneeName) ? HistoryAction.Assigned : HistoryAction.Reassigned,
             OldValue = oldAssigneeName,
             NewValue = newAssigneeName,
+            Timestamp = DateTime.UtcNow
+        };
+
+        await _historyRepository.AddAsync(history);
+    }
+
+    public async Task RecordEscalationAsync(int incidentId, string userId, string fromLevelName, string toLevelName, string reason)
+    {
+        var history = new IncidentHistory
+        {
+            IncidentId = incidentId,
+            UserId = userId,
+            Action = HistoryAction.Escalated,
+            OldValue = fromLevelName,
+            NewValue = toLevelName,
+            Description = reason,
             Timestamp = DateTime.UtcNow
         };
 

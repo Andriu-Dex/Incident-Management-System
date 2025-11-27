@@ -1,0 +1,235 @@
+@using IncidentsTI.Application.DTOs.Escalation
+@using IncidentsTI.Application.Commands
+@using IncidentsTI.Application.Queries
+@using MediatR
+
+<div class="modal fade @(IsVisible ? "show" : "")" tabindex="-1" style="display: @(IsVisible ? "block" : "none");" 
+     aria-hidden="@(!IsVisible)">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="bi bi-arrow-up-circle-fill me-2"></i>Escalar Incidente
+                </h5>
+                <button type="button" class="btn-close" @onclick="Close" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                @if (isLoading)
+                {
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Cargando niveles de escalamiento...</p>
+                    </div>
+                }
+                else
+                {
+                    <EditForm Model="@model" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        
+                        @if (CurrentLevel != null)
+                        {
+                            <div class="alert alert-info mb-3">
+                                <strong>Nivel actual:</strong> @CurrentLevel.Name
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-secondary mb-3">
+                                <strong>Nivel actual:</strong> Sin asignar
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Escalar a Nivel <span class="text-danger">*</span></label>
+                            <InputSelect @bind-Value="model.ToLevelId" class="form-select">
+                                <option value="0">-- Seleccionar nivel --</option>
+                                @foreach (var level in availableLevels)
+                                {
+                                    <option value="@level.Id">@level.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => model.ToLevelId)" class="text-danger" />
+                            @if (selectedLevel != null)
+                            {
+                                <small class="text-muted">@selectedLevel.Description</small>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Motivo del Escalamiento <span class="text-danger">*</span></label>
+                            <InputTextArea @bind-Value="model.Reason" class="form-control" rows="3" 
+                                          placeholder="Explique por qué se escala este incidente..." />
+                            <ValidationMessage For="@(() => model.Reason)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notas Adicionales</label>
+                            <InputTextArea @bind-Value="model.Notes" class="form-control" rows="2" 
+                                          placeholder="Información adicional para el siguiente nivel..." />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+                            </div>
+                        }
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@isSaving">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-warning" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Escalando...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-arrow-up-circle me-1"></i>
+                                    <span>Escalar Incidente</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public int IncidentId { get; set; }
+    [Parameter] public string UserId { get; set; } = string.Empty;
+    [Parameter] public EscalationLevelDto? CurrentLevel { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnEscalated { get; set; }
+    
+    [Inject] private IMediator Mediator { get; set; } = default!;
+
+    private EscalateModel model = new();
+    private List<EscalationLevelDto> escalationLevels = new();
+    private List<EscalationLevelDto> availableLevels = new();
+    private EscalationLevelDto? selectedLevel;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible && isLoading)
+        {
+            await LoadEscalationLevels();
+        }
+    }
+
+    private async Task LoadEscalationLevels()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+            
+            var query = new GetEscalationLevelsQuery();
+            escalationLevels = (await Mediator.Send(query)).ToList();
+            
+            // Filter levels to show only higher levels than current
+            if (CurrentLevel != null)
+            {
+                availableLevels = escalationLevels
+                    .Where(l => l.Order > CurrentLevel.Order && l.IsActive)
+                    .OrderBy(l => l.Order)
+                    .ToList();
+            }
+            else
+            {
+                availableLevels = escalationLevels
+                    .Where(l => l.IsActive)
+                    .OrderBy(l => l.Order)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar niveles: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (model.ToLevelId <= 0)
+        {
+            errorMessage = "Debe seleccionar un nivel de escalamiento.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Reason))
+        {
+            errorMessage = "Debe ingresar el motivo del escalamiento.";
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+            errorMessage = null;
+
+            var command = new EscalateIncidentCommand
+            {
+                IncidentId = IncidentId,
+                ToLevelId = model.ToLevelId,
+                Reason = model.Reason,
+                Notes = model.Notes,
+                EscalatedByUserId = UserId
+            };
+
+            var result = await Mediator.Send(command);
+
+            if (result)
+            {
+                await OnEscalated.InvokeAsync();
+                await Close();
+            }
+            else
+            {
+                errorMessage = "Error al escalar el incidente. Verifique los datos e intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        model = new EscalateModel();
+        errorMessage = null;
+        isLoading = true;
+        await OnClose.InvokeAsync();
+    }
+
+    private class EscalateModel
+    {
+        public int ToLevelId { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+    }
+}

@@ -1,6 +1,7 @@
 @page "/incidents/{id:int}"
 @using IncidentsTI.Application.Commands
 @using IncidentsTI.Application.DTOs
+@using IncidentsTI.Application.DTOs.Escalation
 @using IncidentsTI.Application.Queries
 @using IncidentsTI.Domain.Enums
 @using MediatR
@@ -181,6 +182,40 @@ else
                         </div>
                         <div class="text-sm font-semibold text-gray-900">@incident.TypeName</div>
                     </div>
+
+                    <!-- Escalation Card -->
+                    <div class="@(incident.CurrentEscalationLevelId.HasValue ? "bg-orange-50 border-orange-200" : "bg-white border-gray-200") rounded-xl shadow-md p-6 border">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-4 h-4 @(incident.CurrentEscalationLevelId.HasValue ? "text-orange-600" : "text-gray-700")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                            <h3 class="text-sm font-bold @(incident.CurrentEscalationLevelId.HasValue ? "text-orange-700" : "text-gray-700")">Nivel de Escalamiento</h3>
+                        </div>
+                        @if (incident.CurrentEscalationLevelId.HasValue)
+                        {
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm font-semibold">
+                                    Nivel @incident.CurrentEscalationLevelOrder
+                                </span>
+                                <span class="text-sm font-semibold text-orange-800">@incident.CurrentEscalationLevelName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-sm text-gray-600 mb-3">Sin escalar</div>
+                        }
+                        
+                        @if (isStaff && incident.Status != IncidentStatus.Closed && incident.Status != IncidentStatus.Resolved)
+                        {
+                            <button @onclick="OpenEscalateModal" 
+                                    class="w-full mt-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                </svg>
+                                Escalar Incidente
+                            </button>
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -314,9 +349,28 @@ else
                     </div>
                 }
             </div>
+
+            <!-- Escalation History Section -->
+            @if (isStaff || incident.CurrentEscalationLevelId.HasValue)
+            {
+                <div class="mt-8">
+                    <IncidentsTI.Web.Components.Shared.EscalationHistory 
+                        @ref="escalationHistoryRef"
+                        IncidentId="@Id" />
+                </div>
+            }
         </div>
     </div>
 }
+
+<!-- Escalate Modal -->
+<IncidentsTI.Web.Components.Shared.EscalateIncidentModal
+    IsVisible="@showEscalateModal"
+    IncidentId="@Id"
+    UserId="@(currentUserId ?? string.Empty)"
+    CurrentLevel="@currentEscalationLevel"
+    OnClose="@CloseEscalateModal"
+    OnEscalated="@OnIncidentEscalated" />
 
 @code {
     [Parameter]
@@ -329,6 +383,11 @@ else
     private bool isStaff = false;
     private string newComment = "";
     private bool isInternalComment = false;
+    
+    // Escalation
+    private bool showEscalateModal = false;
+    private EscalationLevelDto? currentEscalationLevel;
+    private IncidentsTI.Web.Components.Shared.EscalationHistory? escalationHistoryRef;
 
     protected override async Task OnInitializedAsync()
     {
@@ -423,5 +482,42 @@ else
             IncidentPriority.Critical => "px-4 py-2 text-sm font-semibold rounded-full bg-red-100 text-red-800 border-2 border-red-300",
             _ => "px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800"
         };
+    }
+
+    // Escalation methods
+    private async Task OpenEscalateModal()
+    {
+        if (incident?.CurrentEscalationLevelId.HasValue == true)
+        {
+            currentEscalationLevel = new EscalationLevelDto
+            {
+                Id = incident.CurrentEscalationLevelId.Value,
+                Name = incident.CurrentEscalationLevelName ?? "",
+                Order = incident.CurrentEscalationLevelOrder ?? 0
+            };
+        }
+        else
+        {
+            currentEscalationLevel = null;
+        }
+        showEscalateModal = true;
+        await Task.CompletedTask;
+    }
+
+    private void CloseEscalateModal()
+    {
+        showEscalateModal = false;
+    }
+
+    private async Task OnIncidentEscalated()
+    {
+        showEscalateModal = false;
+        await LoadIncident();
+        await LoadHistory();
+        if (escalationHistoryRef != null)
+        {
+            await escalationHistoryRef.RefreshAsync();
+        }
+        ToastService.ShowSuccess("Incidente escalado correctamente");
     }
 }

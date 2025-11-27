@@ -213,5 +213,45 @@ namespace IncidentsTI.Infrastructure.Data
             await context.Services.AddRangeAsync(services);
             await context.SaveChangesAsync();
         }
+
+        public static async Task SeedEscalationLevelsAsync(ApplicationDbContext context)
+        {
+            // Check if escalation levels already exist
+            if (await context.EscalationLevels.AnyAsync())
+            {
+                return; // Escalation levels already seeded
+            }
+
+            var levels = new List<EscalationLevel>
+            {
+                new EscalationLevel
+                {
+                    Name = "Nivel 1 - Mesa de Ayuda",
+                    Description = "Primer nivel de soporte. Atención inicial de incidentes, solución de problemas básicos y documentación.",
+                    Order = 1,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new EscalationLevel
+                {
+                    Name = "Nivel 2 - Especialista",
+                    Description = "Segundo nivel de soporte. Técnicos especializados para problemas complejos que requieren conocimiento técnico avanzado.",
+                    Order = 2,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                new EscalationLevel
+                {
+                    Name = "Nivel 3 - Proveedor Externo",
+                    Description = "Tercer nivel de soporte. Proveedores externos o fabricantes para problemas que requieren intervención especializada.",
+                    Order = 3,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                }
+            };
+
+            await context.EscalationLevels.AddRangeAsync(levels);
+            await context.SaveChangesAsync();
+        }
     }
 }

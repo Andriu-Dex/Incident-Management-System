@@ -60,6 +60,9 @@ public class GetIncidentByIdQueryHandler : IRequestHandler<GetIncidentByIdQuery,
             AssignedToId = incident.AssignedToId,
             AssignedToName = assignedTo != null ? $"{assignedTo.FirstName} {assignedTo.LastName}" : null,
             AssignedToEmail = assignedTo?.Email,
+            CurrentEscalationLevelId = incident.CurrentEscalationLevelId,
+            CurrentEscalationLevelName = incident.CurrentEscalationLevel?.Name,
+            CurrentEscalationLevelOrder = incident.CurrentEscalationLevel?.Order,
             CreatedAt = incident.CreatedAt,
             UpdatedAt = incident.UpdatedAt
         };

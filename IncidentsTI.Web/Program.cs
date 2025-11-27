@@ -66,6 +66,8 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
             builder.Services.AddScoped<IIncidentHistoryRepository, IncidentHistoryRepository>();
             builder.Services.AddScoped<IIncidentCommentRepository, IncidentCommentRepository>();
+            builder.Services.AddScoped<IEscalationLevelRepository, EscalationLevelRepository>();
+            builder.Services.AddScoped<IIncidentEscalationRepository, IncidentEscalationRepository>();
             
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
@@ -184,6 +186,9 @@ namespace IncidentsTI.Web
                 
                 // Seed services
                 await DatabaseSeeder.SeedServicesAsync(context);
+
+                // Seed escalation levels
+                await DatabaseSeeder.SeedEscalationLevelsAsync(context);
             }
             catch (Exception ex)
             {

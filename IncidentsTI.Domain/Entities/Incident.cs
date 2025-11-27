@@ -26,6 +26,10 @@ public class Incident
     public string? AssignedToId { get; set; }
     public ApplicationUser? AssignedTo { get; set; }
     
+    // Nivel de escalamiento actual (nullable - sin escalar por defecto)
+    public int? CurrentEscalationLevelId { get; set; }
+    public EscalationLevel? CurrentEscalationLevel { get; set; }
+    
     // Timestamps
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
@@ -33,4 +37,5 @@ public class Incident
     // Colecciones de navegación para trazabilidad
     public ICollection<IncidentHistory> History { get; set; } = new List<IncidentHistory>();
     public ICollection<IncidentComment> Comments { get; set; } = new List<IncidentComment>();
+    public ICollection<IncidentEscalation> Escalations { get; set; } = new List<IncidentEscalation>();
 }

@@ -32,6 +32,11 @@ public class IncidentDto
     public string? AssignedToName { get; set; }
     public string? AssignedToEmail { get; set; }
     
+    // Escalamiento
+    public int? CurrentEscalationLevelId { get; set; }
+    public string? CurrentEscalationLevelName { get; set; }
+    public int? CurrentEscalationLevelOrder { get; set; }
+    
     // Timestamps
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

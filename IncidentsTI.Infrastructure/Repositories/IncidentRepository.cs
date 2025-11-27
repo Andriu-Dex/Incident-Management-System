@@ -21,6 +21,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
@@ -30,6 +31,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .FirstOrDefaultAsync(i => i.TicketNumber == ticketNumber);
     }
 
@@ -39,6 +41,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
     }
@@ -49,6 +52,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .Where(i => i.UserId == userId)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
@@ -60,6 +64,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .Where(i => i.AssignedToId == assignedToId)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
@@ -71,6 +76,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .Where(i => i.Status == status)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
@@ -82,6 +88,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .Where(i => i.ServiceId == serviceId)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();
@@ -93,6 +100,7 @@ public class IncidentRepository : IIncidentRepository
             .Include(i => i.User)
             .Include(i => i.Service)
             .Include(i => i.AssignedTo)
+            .Include(i => i.CurrentEscalationLevel)
             .Where(i => i.Priority == priority)
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync();

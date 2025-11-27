@@ -19,6 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Incident> Incidents { get; set; }
     public DbSet<IncidentHistory> IncidentHistories { get; set; }
     public DbSet<IncidentComment> IncidentComments { get; set; }
+    public DbSet<EscalationLevel> EscalationLevels { get; set; }
+    public DbSet<IncidentEscalation> IncidentEscalations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +37,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         // Configure IncidentComment relationships
         ConfigureIncidentCommentRelationships(modelBuilder);
+        
+        // Configure EscalationLevel relationships
+        ConfigureEscalationLevelRelationships(modelBuilder);
+        
+        // Configure IncidentEscalation relationships
+        ConfigureIncidentEscalationRelationships(modelBuilder);
 
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -61,6 +69,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(i => i.AssignedTo)
             .WithMany()
             .HasForeignKey(i => i.AssignedToId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        // Incident -> EscalationLevel (CurrentLevel)
+        modelBuilder.Entity<Incident>()
+            .HasOne(i => i.CurrentEscalationLevel)
+            .WithMany(e => e.Incidents)
+            .HasForeignKey(i => i.CurrentEscalationLevelId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
@@ -125,6 +141,64 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<IncidentComment>()
             .HasIndex(c => c.CreatedAt);
+    }
+
+    private void ConfigureEscalationLevelRelationships(ModelBuilder modelBuilder)
+    {
+        // Index for ordering
+        modelBuilder.Entity<EscalationLevel>()
+            .HasIndex(e => e.Order)
+            .IsUnique();
+
+        modelBuilder.Entity<EscalationLevel>()
+            .HasIndex(e => e.IsActive);
+    }
+
+    private void ConfigureIncidentEscalationRelationships(ModelBuilder modelBuilder)
+    {
+        // IncidentEscalation -> Incident
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasOne(e => e.Incident)
+            .WithMany(i => i.Escalations)
+            .HasForeignKey(e => e.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentEscalation -> FromUser
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasOne(e => e.FromUser)
+            .WithMany()
+            .HasForeignKey(e => e.FromUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // IncidentEscalation -> ToUser (nullable)
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasOne(e => e.ToUser)
+            .WithMany()
+            .HasForeignKey(e => e.ToUserId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        // IncidentEscalation -> FromLevel (nullable)
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasOne(e => e.FromLevel)
+            .WithMany(l => l.EscalationsFrom)
+            .HasForeignKey(e => e.FromLevelId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        // IncidentEscalation -> ToLevel
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasOne(e => e.ToLevel)
+            .WithMany(l => l.EscalationsTo)
+            .HasForeignKey(e => e.ToLevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Indexes for better query performance
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasIndex(e => e.IncidentId);
+
+        modelBuilder.Entity<IncidentEscalation>()
+            .HasIndex(e => e.EscalatedAt);
     }
 
     private void SeedRoles(ModelBuilder modelBuilder)
