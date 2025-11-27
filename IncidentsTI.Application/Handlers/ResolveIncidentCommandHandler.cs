@@ -13,13 +13,16 @@ public class ResolveIncidentCommandHandler : IRequestHandler<ResolveIncidentComm
 {
     private readonly IIncidentRepository _incidentRepository;
     private readonly IKnowledgeArticleRepository _articleRepository;
+    private readonly INotificationService _notificationService;
 
     public ResolveIncidentCommandHandler(
         IIncidentRepository incidentRepository,
-        IKnowledgeArticleRepository articleRepository)
+        IKnowledgeArticleRepository articleRepository,
+        INotificationService notificationService)
     {
         _incidentRepository = incidentRepository;
         _articleRepository = articleRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(ResolveIncidentCommand request, CancellationToken cancellationToken)
@@ -73,6 +76,9 @@ public class ResolveIncidentCommandHandler : IRequestHandler<ResolveIncidentComm
         });
 
         await _incidentRepository.UpdateAsync(incident);
+        
+        // Enviar notificación de resolución al usuario que reportó el incidente
+        await _notificationService.NotifyIncidentResolvedAsync(incident, request.UserId);
 
         return true;
     }

@@ -11,15 +11,18 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, int>
     private readonly IIncidentCommentRepository _commentRepository;
     private readonly IIncidentHistoryRepository _historyRepository;
     private readonly IIncidentRepository _incidentRepository;
+    private readonly INotificationService _notificationService;
 
     public AddCommentCommandHandler(
         IIncidentCommentRepository commentRepository,
         IIncidentHistoryRepository historyRepository,
-        IIncidentRepository incidentRepository)
+        IIncidentRepository incidentRepository,
+        INotificationService notificationService)
     {
         _commentRepository = commentRepository;
         _historyRepository = historyRepository;
         _incidentRepository = incidentRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<int> Handle(AddCommentCommand request, CancellationToken cancellationToken)
@@ -55,6 +58,12 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, int>
         };
 
         await _historyRepository.AddAsync(history);
+        
+        // Enviar notificación solo para comentarios públicos
+        if (!request.IsInternal)
+        {
+            await _notificationService.NotifyCommentAddedAsync(incident, comment);
+        }
 
         return comment.Id;
     }

@@ -9,13 +9,16 @@ public class UpdateIncidentStatusCommandHandler : IRequestHandler<UpdateIncident
 {
     private readonly IIncidentRepository _incidentRepository;
     private readonly IIncidentHistoryService _historyService;
+    private readonly INotificationService _notificationService;
 
     public UpdateIncidentStatusCommandHandler(
         IIncidentRepository incidentRepository,
-        IIncidentHistoryService historyService)
+        IIncidentHistoryService historyService,
+        INotificationService notificationService)
     {
         _incidentRepository = incidentRepository;
         _historyService = historyService;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(UpdateIncidentStatusCommand request, CancellationToken cancellationToken)
@@ -36,6 +39,9 @@ public class UpdateIncidentStatusCommandHandler : IRequestHandler<UpdateIncident
         {
             await _historyService.RecordStatusChange(request.IncidentId, request.UserId, oldStatus, request.NewStatus);
         }
+        
+        // Enviar notificación de cambio de estado
+        await _notificationService.NotifyStatusChangedAsync(incident, oldStatus, request.NewStatus, request.UserId ?? "System");
         
         return true;
     }

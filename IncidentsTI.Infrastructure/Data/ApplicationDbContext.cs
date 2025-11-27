@@ -27,6 +27,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SolutionStep> SolutionSteps { get; set; }
     public DbSet<ArticleKeyword> ArticleKeywords { get; set; }
     public DbSet<IncidentArticleLink> IncidentArticleLinks { get; set; }
+    
+    // Notifications
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +55,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         // Configure Knowledge Base relationships
         ConfigureKnowledgeBaseRelationships(modelBuilder);
+        
+        // Configure Notification relationships
+        ConfigureNotificationRelationships(modelBuilder);
 
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -296,5 +302,32 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<IncidentArticleLink>()
             .HasIndex(l => new { l.IncidentId, l.ArticleId })
             .IsUnique();
+    }
+
+    private void ConfigureNotificationRelationships(ModelBuilder modelBuilder)
+    {
+        // Notification -> User
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Indexes for better query performance
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.UserId);
+
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.IsRead);
+
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.IsActive);
+
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.CreatedAt);
+
+        // Composite index for common queries
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => new { n.UserId, n.IsRead, n.IsActive });
     }
 }

@@ -12,13 +12,16 @@ public class LinkArticleToIncidentCommandHandler : IRequestHandler<LinkArticleTo
 {
     private readonly IKnowledgeArticleRepository _articleRepository;
     private readonly IIncidentRepository _incidentRepository;
+    private readonly INotificationService _notificationService;
 
     public LinkArticleToIncidentCommandHandler(
         IKnowledgeArticleRepository articleRepository,
-        IIncidentRepository incidentRepository)
+        IIncidentRepository incidentRepository,
+        INotificationService notificationService)
     {
         _articleRepository = articleRepository;
         _incidentRepository = incidentRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(LinkArticleToIncidentCommand request, CancellationToken cancellationToken)
@@ -48,6 +51,9 @@ public class LinkArticleToIncidentCommandHandler : IRequestHandler<LinkArticleTo
         
         // Incrementar contador de uso del artículo
         await _articleRepository.IncrementUsageCountAsync(request.ArticleId);
+        
+        // Enviar notificación al usuario que reportó el incidente
+        await _notificationService.NotifyArticleLinkedAsync(incident, article);
 
         return true;
     }

@@ -13,17 +13,20 @@ public class EscalateIncidentCommandHandler : IRequestHandler<EscalateIncidentCo
     private readonly IEscalationLevelRepository _escalationLevelRepository;
     private readonly IIncidentEscalationRepository _incidentEscalationRepository;
     private readonly IIncidentHistoryService _historyService;
+    private readonly INotificationService _notificationService;
 
     public EscalateIncidentCommandHandler(
         IIncidentRepository incidentRepository,
         IEscalationLevelRepository escalationLevelRepository,
         IIncidentEscalationRepository incidentEscalationRepository,
-        IIncidentHistoryService historyService)
+        IIncidentHistoryService historyService,
+        INotificationService notificationService)
     {
         _incidentRepository = incidentRepository;
         _escalationLevelRepository = escalationLevelRepository;
         _incidentEscalationRepository = incidentEscalationRepository;
         _historyService = historyService;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(EscalateIncidentCommand request, CancellationToken cancellationToken)
@@ -56,6 +59,9 @@ public class EscalateIncidentCommandHandler : IRequestHandler<EscalateIncidentCo
         };
 
         await _incidentEscalationRepository.AddAsync(escalation);
+        
+        // Cargar el nivel para la notificación
+        escalation.ToLevel = toLevel;
 
         // Update incident's current escalation level
         incident.CurrentEscalationLevelId = request.ToLevelId;
@@ -83,6 +89,9 @@ public class EscalateIncidentCommandHandler : IRequestHandler<EscalateIncidentCo
             fromLevelName,
             toLevel.Name,
             request.Reason);
+            
+        // Enviar notificación de escalamiento
+        await _notificationService.NotifyIncidentEscalatedAsync(incident, escalation);
 
         return true;
     }

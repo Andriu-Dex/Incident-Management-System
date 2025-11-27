@@ -14,17 +14,20 @@ public class CreateIncidentCommandHandler : IRequestHandler<CreateIncidentComman
     private readonly IServiceRepository _serviceRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IIncidentHistoryService _historyService;
+    private readonly INotificationService _notificationService;
 
     public CreateIncidentCommandHandler(
         IIncidentRepository incidentRepository,
         IServiceRepository serviceRepository,
         UserManager<ApplicationUser> userManager,
-        IIncidentHistoryService historyService)
+        IIncidentHistoryService historyService,
+        INotificationService notificationService)
     {
         _incidentRepository = incidentRepository;
         _serviceRepository = serviceRepository;
         _userManager = userManager;
         _historyService = historyService;
+        _notificationService = notificationService;
     }
 
     public async Task<IncidentDto> Handle(CreateIncidentCommand request, CancellationToken cancellationToken)
@@ -51,9 +54,16 @@ public class CreateIncidentCommandHandler : IRequestHandler<CreateIncidentComman
         // Registrar en el historial
         await _historyService.RecordCreation(createdIncident.Id, request.UserId);
         
+        // Cargar relaciones para la notificación
+        createdIncident.User = await _userManager.FindByIdAsync(createdIncident.UserId);
+        createdIncident.Service = await _serviceRepository.GetByIdAsync(createdIncident.ServiceId);
+        
+        // Enviar notificación a técnicos y administradores
+        await _notificationService.NotifyIncidentCreatedAsync(createdIncident);
+        
         // Cargar relaciones para el DTO
-        var user = await _userManager.FindByIdAsync(createdIncident.UserId);
-        var service = await _serviceRepository.GetByIdAsync(createdIncident.ServiceId);
+        var user = createdIncident.User;
+        var service = createdIncident.Service;
 
         return new IncidentDto
         {

@@ -3,6 +3,7 @@ using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Interfaces;
 using IncidentsTI.Infrastructure.Data;
 using IncidentsTI.Infrastructure.Repositories;
+using IncidentsTI.Infrastructure.Services;
 using IncidentsTI.Web.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -69,9 +70,11 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<IEscalationLevelRepository, EscalationLevelRepository>();
             builder.Services.AddScoped<IIncidentEscalationRepository, IncidentEscalationRepository>();
             builder.Services.AddScoped<IKnowledgeArticleRepository, KnowledgeArticleRepository>();
+            builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
             
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
 
             // Configure MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(
