@@ -100,7 +100,8 @@
             <section aria-labelledby="kpi-heading">
                 <h2 id="kpi-heading" class="sr-only">Indicadores clave de rendimiento</h2>
                 
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                @* Primera fila: 4 KPIs principales *@
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
                     <KpiCard Title="Total Incidentes"
                              Value="@statistics.TotalIncidents.ToString("N0")"
                              ColorScheme="slate"
@@ -120,12 +121,13 @@
                              Value="@statistics.EscalatedIncidents.ToString("N0")"
                              ColorScheme="orange"
                              DefaultIconPath="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    
+                </div>
+                
+                @* Segunda fila: 4 KPIs secundarios *@
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
                     <KpiCard Title="Resueltos"
                              Value="@statistics.ResolvedIncidents.ToString("N0")"
                              ColorScheme="emerald"
-                             ProgressValue="@GetResolutionRateInt()"
-                             ProgressLabel="Tasa de resolución"
                              DefaultIconPath="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     
                     <KpiCard Title="Cerrados"
@@ -139,6 +141,13 @@
                              TrendValue="@(statistics.UnassignedIncidents > 5 ? 15 : -10)"
                              TrendIsPositive="false"
                              DefaultIconPath="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+                    
+                    <KpiCard Title="Tasa Resolución"
+                             Value="@($"{GetResolutionRateInt()}%")"
+                             ColorScheme="purple"
+                             ProgressValue="@GetResolutionRateInt()"
+                             ProgressLabel="Objetivo: 80%"
+                             DefaultIconPath="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </div>
             </section>
 
