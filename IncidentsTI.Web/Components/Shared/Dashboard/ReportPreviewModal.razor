@@ -1,0 +1,442 @@
+@* ReportPreviewModal.razor - Modal de previsualización y configuración de reportes *@
+@* Diseñado con WCAG 2.1 y DCU (Diseño Centrado en Usuario) *@
+
+@using IncidentsTI.Application.Reports.DTOs
+@inject IJSRuntime JSRuntime
+
+<div class="@GetModalClass()" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="report-modal-title"
+     @onclick="HandleBackdropClick">
+    
+    <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity duration-300"
+         aria-hidden="true"></div>
+    
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
+            
+            <div class="@GetPanelClass()"
+                 @onclick:stopPropagation="true"
+                 role="document">
+                
+                @* Header *@
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 
+                                    flex items-center justify-center shadow-lg shadow-blue-500/25">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 id="report-modal-title" class="text-lg font-semibold text-gray-900">
+                                Generar Reporte
+                            </h2>
+                            <p class="text-sm text-gray-500">Configura las opciones del reporte</p>
+                        </div>
+                    </div>
+                    
+                    <button @onclick="Close"
+                            class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg 
+                                   transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Cerrar modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                @* Content *@
+                <div class="px-6 py-5 space-y-6 max-h-[calc(100vh-220px)] overflow-y-auto">
+                    
+                    @* Período del Reporte *@
+                    <section aria-labelledby="period-heading">
+                        <h3 id="period-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Período del Reporte
+                        </h3>
+                        
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="start-date" class="block text-xs font-medium text-gray-600 mb-1.5">
+                                        Fecha Inicio
+                                    </label>
+                                    <input type="date" 
+                                           id="start-date"
+                                           @bind="StartDate"
+                                           class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg 
+                                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                                                  transition-colors bg-white" />
+                                </div>
+                                <div>
+                                    <label for="end-date" class="block text-xs font-medium text-gray-600 mb-1.5">
+                                        Fecha Fin
+                                    </label>
+                                    <input type="date" 
+                                           id="end-date"
+                                           @bind="EndDate"
+                                           class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg 
+                                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                                                  transition-colors bg-white" />
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                <button @onclick="() => SetQuickPeriod(7)" 
+                                        class="@GetQuickPeriodClass(7)">
+                                    Últimos 7 días
+                                </button>
+                                <button @onclick="() => SetQuickPeriod(30)" 
+                                        class="@GetQuickPeriodClass(30)">
+                                    Últimos 30 días
+                                </button>
+                                <button @onclick="() => SetQuickPeriod(90)" 
+                                        class="@GetQuickPeriodClass(90)">
+                                    Últimos 3 meses
+                                </button>
+                                <button @onclick="SetThisMonth" 
+                                        class="@GetQuickPeriodClass(-1)">
+                                    Este mes
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    @* Formato de Exportación *@
+                    <section aria-labelledby="format-heading">
+                        <h3 id="format-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            Formato de Exportación
+                        </h3>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <button @onclick='() => SelectedFormat = "pdf"'
+                                    class="@GetFormatButtonClass("pdf")"
+                                    aria-pressed="@(SelectedFormat == "pdf")">
+                                <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-2">
+                                    <svg class="w-7 h-7 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zm-2.5 9.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM7 15h1v2H7v-2zm6-2h1v4h-1v-4zm-3 1h1v3h-1v-3z"/>
+                                    </svg>
+                                </div>
+                                <span class="font-medium text-gray-900">PDF</span>
+                                <span class="text-xs text-gray-500">Documento portable</span>
+                            </button>
+                            
+                            <button @onclick='() => SelectedFormat = "excel"'
+                                    class="@GetFormatButtonClass("excel")"
+                                    aria-pressed="@(SelectedFormat == "excel")">
+                                <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-2">
+                                    <svg class="w-7 h-7 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM9.5 17.5L8 15l-1.5 2.5H5l2.25-3.5L5 10.5h1.5L8 13l1.5-2.5H11l-2.25 3.5L11 17.5H9.5zM14 4l5 5h-5V4z"/>
+                                    </svg>
+                                </div>
+                                <span class="font-medium text-gray-900">Excel</span>
+                                <span class="text-xs text-gray-500">Hojas de cálculo</span>
+                            </button>
+                        </div>
+                    </section>
+                    
+                    @* Secciones a Incluir *@
+                    <section aria-labelledby="sections-heading">
+                        <h3 id="sections-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                            </svg>
+                            Secciones a Incluir
+                        </h3>
+                        
+                        <div class="space-y-2">
+                            @* Select All *@
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <span class="text-sm font-medium text-gray-700">Seleccionar todo</span>
+                                <button @onclick="ToggleAllSections"
+                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full 
+                                               border-2 border-transparent transition-colors duration-200 ease-in-out 
+                                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                                               @(AllSectionsSelected ? "bg-blue-600" : "bg-gray-200")"
+                                        role="switch"
+                                        aria-checked="@AllSectionsSelected">
+                                    <span class="@(AllSectionsSelected ? "translate-x-5" : "translate-x-0")
+                                                 pointer-events-none inline-block h-5 w-5 transform rounded-full 
+                                                 bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach (var opt in SectionOptions)
+                                {
+                                    <label class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-lg 
+                                                  hover:border-blue-200 hover:bg-blue-50/50 transition-colors cursor-pointer
+                                                  @(GetSectionValue(opt.Key) ? "border-blue-200 bg-blue-50/50" : "")">
+                                        <input type="checkbox" 
+                                               checked="@GetSectionValue(opt.Key)"
+                                               @onchange="@(e => SetSectionValue(opt.Key, (bool)(e.Value ?? false)))"
+                                               class="w-4 h-4 text-blue-600 border-gray-300 rounded 
+                                                      focus:ring-blue-500 focus:ring-2" />
+                                        <div class="flex items-center gap-2">
+                                            <span class="@opt.IconClass">
+                                                @((MarkupString)opt.Icon)
+                                            </span>
+                                            <span class="text-sm text-gray-700">@opt.Label</span>
+                                        </div>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    </section>
+                    
+                    @* Preview Summary *@
+                    <section class="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Resumen del Reporte
+                        </h3>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Período:</span>
+                                <span class="font-medium text-gray-900">
+                                    @StartDate.ToString("dd/MM/yyyy") - @EndDate.ToString("dd/MM/yyyy")
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Formato:</span>
+                                <span class="font-medium text-gray-900 uppercase">@SelectedFormat</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Secciones:</span>
+                                <span class="font-medium text-gray-900">@GetSelectedSectionsCount() de @SectionOptions.Count</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                @* Footer *@
+                <div class="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-2xl">
+                    <button @onclick="Close"
+                            class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 
+                                   rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 
+                                   focus:ring-offset-2 transition-colors">
+                        Cancelar
+                    </button>
+                    
+                    <button @onclick="GenerateReport"
+                            disabled="@isGenerating"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white 
+                                   bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl 
+                                   hover:from-blue-700 hover:to-indigo-700 
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
+                                   transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40
+                                   disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if (isGenerating)
+                        {
+                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span>Generando...</span>
+                        }
+                        else
+                        {
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            <span>Generar Reporte</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public DateTime StartDate { get; set; } = DateTime.Today.AddDays(-30);
+    [Parameter] public DateTime EndDate { get; set; } = DateTime.Today;
+    [Parameter] public EventCallback<GenerateReportRequest> OnGenerateReport { get; set; }
+    
+    private string SelectedFormat { get; set; } = "pdf";
+    private bool isGenerating = false;
+    private int? selectedQuickPeriod = 30;
+    
+    // Secciones del reporte
+    private ReportSections sections = new()
+    {
+        Summary = true,
+        KpiCards = true,
+        StatusChart = true,
+        PriorityChart = true,
+        TrendChart = true,
+        TechnicianTable = true,
+        ServiceTable = true,
+        TypeTable = true,
+        TimeMetrics = true
+    };
+    
+    private bool AllSectionsSelected => 
+        sections.Summary && sections.KpiCards && sections.StatusChart && 
+        sections.PriorityChart && sections.TrendChart && sections.TechnicianTable && 
+        sections.ServiceTable && sections.TypeTable && sections.TimeMetrics;
+    
+    private class SectionOption
+    {
+        public string Key { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public string IconClass { get; set; } = "";
+    }
+    
+    private List<SectionOption> SectionOptions = new()
+    {
+        new() { Key = "Summary", Label = "Resumen Ejecutivo", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/></svg>", IconClass = "text-blue-500" },
+        new() { Key = "KpiCards", Label = "KPIs Principales", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/></svg>", IconClass = "text-indigo-500" },
+        new() { Key = "TimeMetrics", Label = "Métricas de Tiempo", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>", IconClass = "text-cyan-500" },
+        new() { Key = "StatusChart", Label = "Por Estado", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z'/></svg>", IconClass = "text-emerald-500" },
+        new() { Key = "PriorityChart", Label = "Por Prioridad", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'/></svg>", IconClass = "text-amber-500" },
+        new() { Key = "TrendChart", Label = "Tendencias", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 12l3-3 3 3 4-4'/></svg>", IconClass = "text-purple-500" },
+        new() { Key = "TechnicianTable", Label = "Por Técnico", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'/></svg>", IconClass = "text-violet-500" },
+        new() { Key = "ServiceTable", Label = "Por Servicio", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2'/></svg>", IconClass = "text-teal-500" },
+        new() { Key = "TypeTable", Label = "Por Tipo", Icon = "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'/></svg>", IconClass = "text-rose-500" }
+    };
+    
+    private string GetModalClass() => IsOpen 
+        ? "fixed inset-0 z-50 overflow-hidden transition-all duration-300 opacity-100" 
+        : "fixed inset-0 z-50 overflow-hidden transition-all duration-300 opacity-0 pointer-events-none";
+    
+    private string GetPanelClass() => IsOpen
+        ? "w-full max-w-lg bg-white rounded-2xl shadow-2xl transform transition-all duration-300 scale-100 opacity-100"
+        : "w-full max-w-lg bg-white rounded-2xl shadow-2xl transform transition-all duration-300 scale-95 opacity-0";
+    
+    private string GetQuickPeriodClass(int days) => selectedQuickPeriod == days
+        ? "px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg border border-blue-200"
+        : "px-3 py-1.5 text-xs font-medium bg-white text-gray-600 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 transition-colors";
+    
+    private string GetFormatButtonClass(string format) => SelectedFormat == format
+        ? "flex flex-col items-center p-4 bg-white border-2 border-blue-500 rounded-xl shadow-sm transition-all ring-2 ring-blue-100"
+        : "flex flex-col items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+    
+    private void SetQuickPeriod(int days)
+    {
+        selectedQuickPeriod = days;
+        EndDate = DateTime.Today;
+        StartDate = DateTime.Today.AddDays(-days);
+    }
+    
+    private void SetThisMonth()
+    {
+        selectedQuickPeriod = -1;
+        StartDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        EndDate = DateTime.Today;
+    }
+    
+    private void ToggleAllSections()
+    {
+        var newValue = !AllSectionsSelected;
+        sections.Summary = newValue;
+        sections.KpiCards = newValue;
+        sections.StatusChart = newValue;
+        sections.PriorityChart = newValue;
+        sections.TrendChart = newValue;
+        sections.TechnicianTable = newValue;
+        sections.ServiceTable = newValue;
+        sections.TypeTable = newValue;
+        sections.TimeMetrics = newValue;
+    }
+    
+    private bool GetSectionValue(string key) => key switch
+    {
+        "Summary" => sections.Summary,
+        "KpiCards" => sections.KpiCards,
+        "StatusChart" => sections.StatusChart,
+        "PriorityChart" => sections.PriorityChart,
+        "TrendChart" => sections.TrendChart,
+        "TechnicianTable" => sections.TechnicianTable,
+        "ServiceTable" => sections.ServiceTable,
+        "TypeTable" => sections.TypeTable,
+        "TimeMetrics" => sections.TimeMetrics,
+        _ => false
+    };
+    
+    private void SetSectionValue(string key, bool value)
+    {
+        switch (key)
+        {
+            case "Summary": sections.Summary = value; break;
+            case "KpiCards": sections.KpiCards = value; break;
+            case "StatusChart": sections.StatusChart = value; break;
+            case "PriorityChart": sections.PriorityChart = value; break;
+            case "TrendChart": sections.TrendChart = value; break;
+            case "TechnicianTable": sections.TechnicianTable = value; break;
+            case "ServiceTable": sections.ServiceTable = value; break;
+            case "TypeTable": sections.TypeTable = value; break;
+            case "TimeMetrics": sections.TimeMetrics = value; break;
+        }
+    }
+    
+    private int GetSelectedSectionsCount()
+    {
+        int count = 0;
+        if (sections.Summary) count++;
+        if (sections.KpiCards) count++;
+        if (sections.StatusChart) count++;
+        if (sections.PriorityChart) count++;
+        if (sections.TrendChart) count++;
+        if (sections.TechnicianTable) count++;
+        if (sections.ServiceTable) count++;
+        if (sections.TypeTable) count++;
+        if (sections.TimeMetrics) count++;
+        return count;
+    }
+    
+    private async Task Close()
+    {
+        await IsOpenChanged.InvokeAsync(false);
+    }
+    
+    private void HandleBackdropClick()
+    {
+        // Close on backdrop click
+        _ = Close();
+    }
+    
+    private async Task GenerateReport()
+    {
+        isGenerating = true;
+        StateHasChanged();
+        
+        try
+        {
+            var request = new GenerateReportRequest
+            {
+                StartDate = StartDate,
+                EndDate = EndDate,
+                Format = SelectedFormat,
+                IncludeSections = sections
+            };
+            
+            await OnGenerateReport.InvokeAsync(request);
+            await Close();
+        }
+        finally
+        {
+            isGenerating = false;
+            StateHasChanged();
+        }
+    }
+}

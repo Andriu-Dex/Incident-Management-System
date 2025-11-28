@@ -1,0 +1,127 @@
+@* TimeMetricCard.razor - Tarjeta especial para métricas de tiempo *@
+@* Diseño basado en ISO 9241 y WCAG 2.1 *@
+
+<div class="time-metric-card group relative bg-gradient-to-br @GetGradientClass() 
+            rounded-2xl p-5 text-white overflow-hidden
+            hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+     role="article"
+     aria-label="@Title: @FormattedValue"
+     tabindex="0">
+    
+    @* Efecto de brillo decorativo *@
+    <div class="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/10 opacity-0 
+                group-hover:opacity-100 transition-opacity duration-500"></div>
+    
+    @* Círculos decorativos *@
+    <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
+    
+    <div class="relative">
+        <div class="flex items-start justify-between mb-4">
+            @* Icono *@
+            <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm 
+                        flex items-center justify-center
+                        group-hover:scale-110 transition-transform duration-300">
+                @if (IconContent != null)
+                {
+                    @IconContent
+                }
+                else
+                {
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                }
+            </div>
+            
+            @* Badge opcional *@
+            @if (!string.IsNullOrEmpty(Badge))
+            {
+                <span class="px-2 py-1 text-xs font-medium bg-white/20 rounded-full backdrop-blur-sm">
+                    @Badge
+                </span>
+            }
+        </div>
+        
+        <div class="space-y-1">
+            <p class="text-sm font-medium text-white/80 tracking-wide uppercase">
+                @Title
+            </p>
+            
+            <div class="flex items-baseline gap-2">
+                <p class="text-4xl font-bold tracking-tight 
+                          group-hover:scale-105 transition-transform origin-left">
+                    @FormattedValue
+                </p>
+                @if (!string.IsNullOrEmpty(Unit))
+                {
+                    <span class="text-lg text-white/70 font-medium">@Unit</span>
+                }
+            </div>
+            
+            @* Descripción o meta *@
+            @if (!string.IsNullOrEmpty(Description))
+            {
+                <p class="text-xs text-white/60 mt-2">
+                    @Description
+                </p>
+            }
+            
+            @* Barra de progreso hacia meta (opcional) *@
+            @if (TargetValue.HasValue && CurrentValue.HasValue)
+            {
+                <div class="mt-3 pt-3 border-t border-white/20">
+                    <div class="flex items-center justify-between text-xs text-white/70 mb-1.5">
+                        <span>Meta: @TargetValue @Unit</span>
+                        <span class="font-semibold text-white">@GetProgressPercentage()%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1.5 overflow-hidden">
+                        <div class="h-full bg-white rounded-full transition-all duration-700"
+                             style="width: @Math.Min(GetProgressPercentage(), 100)%"
+                             role="progressbar"
+                             aria-valuenow="@GetProgressPercentage()"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string FormattedValue { get; set; } = "0";
+    [Parameter] public string? Unit { get; set; }
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string? Badge { get; set; }
+    [Parameter] public string Variant { get; set; } = "blue"; // blue, green, purple, orange, cyan
+    [Parameter] public RenderFragment? IconContent { get; set; }
+    [Parameter] public double? CurrentValue { get; set; }
+    [Parameter] public double? TargetValue { get; set; }
+
+    private string GetGradientClass()
+    {
+        return Variant.ToLower() switch
+        {
+            "green" => "from-emerald-500 via-emerald-600 to-teal-600",
+            "purple" => "from-purple-500 via-purple-600 to-indigo-600",
+            "orange" => "from-orange-500 via-orange-600 to-amber-600",
+            "cyan" => "from-cyan-500 via-cyan-600 to-blue-600",
+            "red" => "from-red-500 via-red-600 to-rose-600",
+            _ => "from-blue-500 via-blue-600 to-indigo-600"
+        };
+    }
+
+    private int GetProgressPercentage()
+    {
+        if (!CurrentValue.HasValue || !TargetValue.HasValue || TargetValue.Value == 0)
+            return 0;
+        
+        // Para métricas de tiempo, menor es mejor
+        var percentage = (TargetValue.Value / CurrentValue.Value) * 100;
+        return (int)Math.Round(percentage);
+    }
+}

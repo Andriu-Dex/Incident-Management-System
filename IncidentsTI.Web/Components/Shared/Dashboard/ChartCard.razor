@@ -1,0 +1,124 @@
+@* ChartCard.razor - Componente reutilizable para contenedores de gráficos *@
+@* Diseño basado en ISO 9241 (Usabilidad) y WCAG 2.1 (Accesibilidad) *@
+
+<div class="chart-card bg-white rounded-2xl border border-gray-100 
+            hover:shadow-lg transition-all duration-300 overflow-hidden"
+     role="region"
+     aria-label="@Title"
+     tabindex="0">
+    
+    @* Header con gradiente sutil *@
+    <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                @* Icono del gráfico *@
+                @if (IconContent != null)
+                {
+                    <div class="w-10 h-10 rounded-xl bg-@ColorScheme-50 flex items-center justify-center">
+                        @IconContent
+                    </div>
+                }
+                
+                <div>
+                    <h3 class="text-base font-semibold text-gray-800">@Title</h3>
+                    @if (!string.IsNullOrEmpty(Subtitle))
+                    {
+                        <p class="text-xs text-gray-500 mt-0.5">@Subtitle</p>
+                    }
+                </div>
+            </div>
+            
+            @* Controles opcionales (ej: selector de periodo) *@
+            @if (HeaderActions != null)
+            {
+                <div class="flex items-center gap-2">
+                    @HeaderActions
+                </div>
+            }
+        </div>
+    </div>
+    
+    @* Contenedor del gráfico con padding consistente *@
+    <div class="p-5 @(HeightClass)">
+        @if (IsLoading)
+        {
+            @* Estado de carga con skeleton *@
+            <div class="h-full flex items-center justify-center" role="status" aria-live="polite">
+                <div class="flex flex-col items-center gap-3 text-gray-400">
+                    <div class="w-12 h-12 border-4 border-gray-200 border-t-@ColorScheme-500 
+                                rounded-full animate-spin"></div>
+                    <span class="text-sm">Cargando datos...</span>
+                </div>
+            </div>
+        }
+        else if (HasError)
+        {
+            @* Estado de error *@
+            <div class="h-full flex items-center justify-center" role="alert">
+                <div class="flex flex-col items-center gap-3 text-gray-500">
+                    <svg class="w-12 h-12 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-red-500">Error al cargar datos</span>
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <span class="text-xs text-gray-400">@ErrorMessage</span>
+                    }
+                    @if (OnRetry.HasDelegate)
+                    {
+                        <button @onclick="OnRetry" 
+                                class="mt-2 px-3 py-1.5 text-xs font-medium text-@ColorScheme-600 
+                                       bg-@ColorScheme-50 rounded-lg hover:bg-@ColorScheme-100 
+                                       transition-colors focus:ring-2 focus:ring-@ColorScheme-500 focus:ring-offset-2">
+                            Reintentar
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+        else if (NoData)
+        {
+            @* Estado sin datos *@
+            <div class="h-full flex items-center justify-center">
+                <div class="flex flex-col items-center gap-3 text-gray-400">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+                              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                    </svg>
+                    <span class="text-sm font-medium">Sin datos disponibles</span>
+                    <span class="text-xs">Ajusta los filtros para ver resultados</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            @* Contenido del gráfico *@
+            @ChildContent
+        }
+    </div>
+    
+    @* Footer opcional para leyenda o información adicional *@
+    @if (FooterContent != null)
+    {
+        <div class="px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+            @FooterContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string ColorScheme { get; set; } = "blue";
+    [Parameter] public string HeightClass { get; set; } = "h-64";
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public bool HasError { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public bool NoData { get; set; }
+    [Parameter] public RenderFragment? IconContent { get; set; }
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? FooterContent { get; set; }
+    [Parameter] public EventCallback OnRetry { get; set; }
+}

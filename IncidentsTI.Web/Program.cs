@@ -1,10 +1,16 @@
 using IncidentsTI.Application.Services;
+using IncidentsTI.Application.Common;
+using IncidentsTI.Application.Reports.DTOs;
+using IncidentsTI.Application.Reports.Interfaces;
+using IncidentsTI.Application.Queries;
 using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Interfaces;
 using IncidentsTI.Infrastructure.Data;
 using IncidentsTI.Infrastructure.Repositories;
+using IncidentsTI.Infrastructure.Reports;
 using IncidentsTI.Infrastructure.Services;
 using IncidentsTI.Web.Components;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Components;
@@ -75,6 +81,7 @@ namespace IncidentsTI.Web
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IReportService, DashboardReportService>();
 
             // Configure MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(
@@ -165,6 +172,98 @@ namespace IncidentsTI.Web
                 await signInManager.SignOutAsync();
                 return Results.Json(new { success = true, message = "Sesión cerrada exitosamente" });
             });
+
+            // API endpoint for dashboard PDF report generation
+            app.MapPost("/api/reports/dashboard/pdf", async (
+                GenerateReportRequest request,
+                IReportService reportService,
+                IMediator mediator,
+                HttpContext httpContext) =>
+            {
+                try
+                {
+                    // Get current user name
+                    var userName = httpContext.User?.Identity?.Name ?? "Sistema";
+
+                    // Get dashboard statistics
+                    var statisticsQuery = new GetDashboardStatisticsQuery
+                    {
+                        StartDate = request.StartDate,
+                        EndDate = request.EndDate
+                    };
+                    var statistics = await mediator.Send(statisticsQuery);
+
+                    // Create report DTO with Ecuador timezone
+                    var reportData = new DashboardReportDto
+                    {
+                        Title = "Reporte de Estadísticas del Dashboard",
+                        Subtitle = $"Período: {request.StartDate:dd/MM/yyyy} - {request.EndDate:dd/MM/yyyy}",
+                        StartDate = request.StartDate,
+                        EndDate = request.EndDate,
+                        GeneratedAt = EcuadorTimeZone.Now,
+                        GeneratedBy = userName,
+                        Statistics = statistics,
+                        IncludeSections = request.IncludeSections ?? new ReportSections()
+                    };
+
+                    // Generate PDF
+                    var pdfBytes = await reportService.GenerateDashboardPdfAsync(reportData);
+
+                    // Return PDF file
+                    var fileName = $"Dashboard_Report_{request.StartDate:yyyyMMdd}_{request.EndDate:yyyyMMdd}.pdf";
+                    return Results.File(pdfBytes, "application/pdf", fileName);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { success = false, message = $"Error generando reporte: {ex.Message}" }, statusCode: 500);
+                }
+            }).RequireAuthorization();
+
+            // API endpoint for dashboard Excel report generation
+            app.MapPost("/api/reports/dashboard/excel", async (
+                GenerateReportRequest request,
+                IReportService reportService,
+                IMediator mediator,
+                HttpContext httpContext) =>
+            {
+                try
+                {
+                    // Get current user name
+                    var userName = httpContext.User?.Identity?.Name ?? "Sistema";
+
+                    // Get dashboard statistics
+                    var statisticsQuery = new GetDashboardStatisticsQuery
+                    {
+                        StartDate = request.StartDate,
+                        EndDate = request.EndDate
+                    };
+                    var statistics = await mediator.Send(statisticsQuery);
+
+                    // Create report DTO with Ecuador timezone
+                    var reportData = new DashboardReportDto
+                    {
+                        Title = "Reporte de Estadísticas del Dashboard",
+                        Subtitle = $"Período: {request.StartDate:dd/MM/yyyy} - {request.EndDate:dd/MM/yyyy}",
+                        StartDate = request.StartDate,
+                        EndDate = request.EndDate,
+                        GeneratedAt = EcuadorTimeZone.Now,
+                        GeneratedBy = userName,
+                        Statistics = statistics,
+                        IncludeSections = request.IncludeSections ?? new ReportSections()
+                    };
+
+                    // Generate Excel
+                    var excelBytes = await reportService.GenerateDashboardExcelAsync(reportData);
+
+                    // Return Excel file
+                    var fileName = $"Dashboard_Report_{request.StartDate:yyyyMMdd}_{request.EndDate:yyyyMMdd}.xlsx";
+                    return Results.File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { success = false, message = $"Error generando reporte Excel: {ex.Message}" }, statusCode: 500);
+                }
+            }).RequireAuthorization();
 
             // Seed database
             await SeedDatabaseAsync(app);

@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.102.3" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11" />
@@ -14,9 +15,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="QuestPDF" Version="2024.10.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IncidentsTI.Application\IncidentsTI.Application.csproj" />
     <ProjectReference Include="..\IncidentsTI.Domain\IncidentsTI.Domain.csproj" />
   </ItemGroup>
 

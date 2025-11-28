@@ -1,0 +1,273 @@
+/* Dashboard Styles - ISO 9241 & WCAG 2.1 Compliant */
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse-gentle {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideUp {
+    animation: slideUp 0.4s ease-out;
+}
+
+.animate-pulse-gentle {
+    animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+/* ===== KPI Card Styles ===== */
+.kpi-card {
+    --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.kpi-card:hover {
+    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.kpi-card:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* ===== Chart Card Styles ===== */
+.chart-card {
+    --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.chart-card:hover {
+    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.chart-card:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* ===== Time Metric Card Styles ===== */
+.time-metric-card {
+    --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.time-metric-card:hover {
+    --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.time-metric-card:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* ===== Stat Table Styles ===== */
+.stat-table {
+    --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.stat-table:hover {
+    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+.stat-table tr:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: -2px;
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+/* ===== Filter Panel Styles ===== */
+.filter-panel {
+    --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--tw-shadow);
+}
+
+/* ===== Accessibility - Focus States ===== */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* ===== Skip Link - WCAG 2.4.1 ===== */
+.sr-only.focus\:not-sr-only:focus {
+    position: absolute;
+    width: auto;
+    height: auto;
+    padding: 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    z-index: 9999;
+}
+
+/* ===== High Contrast Mode Support ===== */
+@media (prefers-contrast: high) {
+    .kpi-card,
+    .chart-card,
+    .time-metric-card,
+    .stat-table,
+    .filter-panel {
+        border-width: 2px;
+        border-color: currentColor;
+    }
+    
+    button,
+    a {
+        text-decoration: underline;
+    }
+}
+
+/* ===== Reduced Motion Support - WCAG 2.3.3 ===== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .animate-pulse,
+    .animate-fadeIn,
+    .animate-slideUp,
+    .animate-pulse-gentle {
+        animation: none;
+    }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+    .filter-panel,
+    .filter-panel * {
+        display: none !important;
+    }
+    
+    .kpi-card,
+    .chart-card,
+    .time-metric-card,
+    .stat-table {
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+        break-inside: avoid;
+    }
+    
+    .time-metric-card {
+        background: #f3f4f6 !important;
+        color: #111827 !important;
+    }
+    
+    header.sticky {
+        position: static;
+    }
+}
+
+/* ===== Custom Scrollbar ===== */
+.stat-table::-webkit-scrollbar,
+.chart-card::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stat-table::-webkit-scrollbar-track,
+.chart-card::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.stat-table::-webkit-scrollbar-thumb,
+.chart-card::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.stat-table::-webkit-scrollbar-thumb:hover,
+.chart-card::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ===== Loading Skeleton ===== */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #e2e8f0 0%,
+        #f1f5f9 50%,
+        #e2e8f0 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ===== Tooltip Accessibility ===== */
+[title] {
+    position: relative;
+}
+
+/* ===== Chart Canvas Responsiveness ===== */
+canvas {
+    max-width: 100%;
+    height: auto !important;
+}
+
+/* ===== Number Display - Tabular Figures ===== */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Status Indicator Colors - WCAG Compliant ===== */
+.status-open { color: #2563EB; }
+.status-in-progress { color: #D97706; }
+.status-resolved { color: #059669; }
+.status-closed { color: #4B5563; }
+.status-escalated { color: #DC2626; }
+
+.priority-low { color: #6B7280; }
+.priority-medium { color: #2563EB; }
+.priority-high { color: #D97706; }
+.priority-critical { color: #DC2626; }

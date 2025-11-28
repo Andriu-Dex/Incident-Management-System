@@ -1,0 +1,124 @@
+@* KpiCard.razor - Componente reutilizable para tarjetas KPI *@
+@* Diseño basado en ISO 9241-110 (Usabilidad) y WCAG 2.1 (Accesibilidad) *@
+
+<div class="kpi-card group relative bg-white rounded-2xl border border-gray-100 p-5 
+            hover:shadow-lg hover:border-@ColorScheme-200 hover:-translate-y-1
+            transition-all duration-300 ease-out overflow-hidden"
+     role="article" 
+     aria-label="@Title: @Value @(Suffix ?? "")"
+     tabindex="0">
+    
+    @* Indicador de color lateral - Accesibilidad: proporciona identificación visual adicional *@
+    <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-@ColorScheme-400 to-@ColorScheme-600 
+                rounded-l-2xl opacity-80 group-hover:opacity-100 transition-opacity"></div>
+    
+    @* Efecto de fondo decorativo *@
+    <div class="absolute -right-4 -top-4 w-24 h-24 bg-@ColorScheme-50 rounded-full opacity-50 
+                group-hover:scale-110 transition-transform duration-500"></div>
+    
+    <div class="relative flex items-start justify-between">
+        <div class="space-y-2">
+            @* Etiqueta con contraste WCAG AA (4.5:1) *@
+            <p class="text-sm font-medium text-gray-500 tracking-wide uppercase">
+                @Title
+            </p>
+            
+            @* Valor principal con animación de contador *@
+            <div class="flex items-baseline gap-1">
+                <p class="text-3xl font-bold text-@ColorScheme-600 tabular-nums 
+                          group-hover:scale-105 transition-transform origin-left">
+                    @Value
+                </p>
+                @if (!string.IsNullOrEmpty(Suffix))
+                {
+                    <span class="text-sm text-gray-400 font-medium">@Suffix</span>
+                }
+            </div>
+            
+            @* Indicador de tendencia (opcional) *@
+            @if (TrendValue.HasValue)
+            {
+                <div class="flex items-center gap-1 text-xs font-medium @GetTrendClass()">
+                    @if (TrendValue > 0)
+                    {
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                        <span>+@TrendValue%</span>
+                    }
+                    else
+                    {
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                        </svg>
+                        <span>@TrendValue%</span>
+                    }
+                    <span class="text-gray-400">vs periodo anterior</span>
+                </div>
+            }
+        </div>
+        
+        @* Icono con efecto de hover *@
+        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-@ColorScheme-50 to-@ColorScheme-100 
+                    flex items-center justify-center shadow-sm
+                    group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+            @if (IconContent != null)
+            {
+                @IconContent
+            }
+            else
+            {
+                <svg class="w-7 h-7 text-@ColorScheme-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@DefaultIconPath"/>
+                </svg>
+            }
+        </div>
+    </div>
+    
+    @* Barra de progreso (opcional) *@
+    @if (ProgressValue.HasValue)
+    {
+        <div class="mt-4 pt-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+                <span>@ProgressLabel</span>
+                <span class="font-semibold text-@ColorScheme-600">@ProgressValue%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-@ColorScheme-400 to-@ColorScheme-500 rounded-full 
+                            transition-all duration-700 ease-out"
+                     style="width: @ProgressValue%"
+                     role="progressbar"
+                     aria-valuenow="@ProgressValue"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "0";
+    [Parameter] public string? Suffix { get; set; }
+    [Parameter] public string ColorScheme { get; set; } = "blue"; // blue, emerald, amber, red, orange, gray, purple, cyan
+    [Parameter] public RenderFragment? IconContent { get; set; }
+    [Parameter] public string DefaultIconPath { get; set; } = "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2";
+    [Parameter] public decimal? TrendValue { get; set; }
+    [Parameter] public bool TrendIsPositive { get; set; } = true;
+    [Parameter] public int? ProgressValue { get; set; }
+    [Parameter] public string ProgressLabel { get; set; } = "Progreso";
+
+    private string GetTrendClass()
+    {
+        if (!TrendValue.HasValue) return "";
+        
+        // Para métricas donde subir es bueno (ej: resueltos)
+        if (TrendIsPositive)
+        {
+            return TrendValue > 0 ? "text-emerald-600" : "text-red-500";
+        }
+        // Para métricas donde bajar es bueno (ej: sin asignar)
+        return TrendValue > 0 ? "text-red-500" : "text-emerald-600";
+    }
+}
