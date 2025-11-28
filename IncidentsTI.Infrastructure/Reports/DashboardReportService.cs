@@ -35,19 +35,443 @@ public class DashboardReportService : IReportService
                 page.Margin(40);
                 page.DefaultTextStyle(x => x.FontSize(10).FontColor(TextColor));
 
-                // Header
-                page.Header().Element(c => ComposeHeader(c, reportData));
+                // Header - inline composition
+                page.Header().PaddingBottom(15).Row(row =>
+                {
+                    row.RelativeItem().Column(column =>
+                    {
+                        column.Item()
+                            .Text(reportData.OrganizationName)
+                            .FontSize(20)
+                            .Bold()
+                            .FontColor(PrimaryColor);
+
+                        column.Item()
+                            .Text(reportData.Title)
+                            .FontSize(16)
+                            .SemiBold()
+                            .FontColor(TextColor);
+
+                        if (!string.IsNullOrEmpty(reportData.Subtitle))
+                        {
+                            column.Item()
+                                .Text(reportData.Subtitle)
+                                .FontSize(11)
+                                .FontColor(MediumGray);
+                        }
+
+                        column.Item()
+                            .PaddingTop(5)
+                            .Text($"Período: {reportData.StartDate:dd/MM/yyyy} - {reportData.EndDate:dd/MM/yyyy}")
+                            .FontSize(10)
+                            .FontColor(MediumGray);
+                    });
+
+                    row.ConstantItem(100).Column(column =>
+                    {
+                        column.Item()
+                            .AlignRight()
+                            .Text(reportData.GeneratedAt.ToString("dd/MM/yyyy"))
+                            .FontSize(10)
+                            .FontColor(MediumGray);
+
+                        column.Item()
+                            .AlignRight()
+                            .Text(reportData.GeneratedAt.ToString("HH:mm"))
+                            .FontSize(9)
+                            .FontColor(MediumGray);
+                    });
+                });
 
                 // Content
-                page.Content().Element(c => ComposeContent(c, reportData));
+                page.Content().Column(column =>
+                {
+                    ComposeAllSections(column, reportData);
+                });
 
-                // Footer
-                page.Footer().Element(c => ComposeFooter(c, reportData));
+                // Footer - inline composition
+                page.Footer().Row(row =>
+                {
+                    row.RelativeItem().Column(column =>
+                    {
+                        column.Item()
+                            .Text($"Generado por: {reportData.GeneratedBy}")
+                            .FontSize(8)
+                            .FontColor(MediumGray);
+
+                        column.Item()
+                            .Text($"Fecha de generación: {reportData.GeneratedAt:dd/MM/yyyy HH:mm:ss}")
+                            .FontSize(8)
+                            .FontColor(MediumGray);
+                    });
+
+                    row.RelativeItem().AlignRight().Column(column =>
+                    {
+                        column.Item()
+                            .AlignRight()
+                            .Text(text =>
+                            {
+                                text.Span("Página ").FontSize(8).FontColor(MediumGray);
+                                text.CurrentPageNumber().FontSize(8).FontColor(MediumGray);
+                                text.Span(" de ").FontSize(8).FontColor(MediumGray);
+                                text.TotalPages().FontSize(8).FontColor(MediumGray);
+                            });
+                    });
+                });
             });
         });
 
         var pdfBytes = document.GeneratePdf();
         return Task.FromResult(pdfBytes);
+    }
+
+    private void ComposeAllSections(ColumnDescriptor column, DashboardReportDto report)
+    {
+        var stats = report.Statistics;
+
+        // Executive Summary
+        if (report.IncludeSections.Summary)
+        {
+            var resolutionRate = stats.TotalIncidents > 0 
+                ? Math.Round((double)(stats.ResolvedIncidents + stats.ClosedIncidents) / stats.TotalIncidents * 100, 1) 
+                : 0;
+
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().Text("Resumen Ejecutivo").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Text(text =>
+                {
+                    text.Span("Durante el período seleccionado, el sistema registró un total de ");
+                    text.Span($"{stats.TotalIncidents} incidentes").Bold();
+                    text.Span(", de los cuales ");
+                    text.Span($"{stats.ResolvedIncidents + stats.ClosedIncidents} ({resolutionRate}%)").Bold().FontColor(SuccessColor);
+                    text.Span(" fueron resueltos exitosamente. ");
+                    
+                    if (stats.EscalatedIncidents > 0)
+                    {
+                        text.Span($"Se escalaron {stats.EscalatedIncidents} incidentes").FontColor(WarningColor);
+                        text.Span(". ");
+                    }
+                    
+                    if (stats.UnassignedIncidents > 0)
+                    {
+                        text.Span($"Actualmente hay {stats.UnassignedIncidents} incidentes sin asignar").FontColor(DangerColor);
+                        text.Span(".");
+                    }
+                });
+
+                col.Item().PaddingTop(5).Text(text =>
+                {
+                    text.Span("El tiempo promedio de resolución fue de ");
+                    text.Span($"{stats.AverageResolutionTimeHours:F1} horas").Bold();
+                    text.Span(" y el tiempo promedio de primera respuesta fue de ");
+                    text.Span($"{stats.AverageFirstResponseTimeHours:F1} horas").Bold();
+                    text.Span(".");
+                });
+            });
+        }
+
+        // KPI Cards
+        if (report.IncludeSections.KpiCards)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Indicadores Clave (KPIs)").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Row(row =>
+                {
+                    AddKpiCard(row.RelativeItem(), "Total Incidentes", stats.TotalIncidents.ToString(), PrimaryColor);
+                    row.ConstantItem(10);
+                    AddKpiCard(row.RelativeItem(), "Abiertos", stats.OpenIncidents.ToString(), WarningColor);
+                    row.ConstantItem(10);
+                    AddKpiCard(row.RelativeItem(), "En Progreso", stats.InProgressIncidents.ToString(), SecondaryColor);
+                    row.ConstantItem(10);
+                    AddKpiCard(row.RelativeItem(), "Resueltos", stats.ResolvedIncidents.ToString(), SuccessColor);
+                });
+
+                col.Item().PaddingTop(10).Row(row =>
+                {
+                    AddKpiCard(row.RelativeItem(), "Cerrados", stats.ClosedIncidents.ToString(), "#6B7280");
+                    row.ConstantItem(10);
+                    AddKpiCard(row.RelativeItem(), "Escalados", stats.EscalatedIncidents.ToString(), DangerColor);
+                    row.ConstantItem(10);
+                    AddKpiCard(row.RelativeItem(), "Sin Asignar", stats.UnassignedIncidents.ToString(), "#DC2626");
+                    row.ConstantItem(10);
+                    row.RelativeItem(); // Empty space for alignment
+                });
+            });
+        }
+
+        // Time Metrics
+        if (report.IncludeSections.TimeMetrics)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Métricas de Tiempo").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Row(row =>
+                {
+                    AddMetricCard(row.RelativeItem(), "Tiempo Promedio Resolución", $"{stats.AverageResolutionTimeHours:F1}h", SecondaryColor);
+                    row.ConstantItem(10);
+                    AddMetricCard(row.RelativeItem(), "Tiempo Primera Respuesta", $"{stats.AverageFirstResponseTimeHours:F1}h", PrimaryColor);
+                });
+            });
+        }
+
+        // Status Distribution
+        if (report.IncludeSections.StatusChart && stats.IncidentsByStatus?.Any() == true)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Distribución por Estado").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);
+                        columns.RelativeColumn(1);
+                        columns.RelativeColumn(2);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(LightGray).Padding(8).Text("Estado").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                    });
+
+                    foreach (var status in stats.IncidentsByStatus.OrderByDescending(s => s.Count))
+                    {
+                        var percentage = stats.TotalIncidents > 0
+                            ? Math.Round((double)status.Count / stats.TotalIncidents * 100, 1)
+                            : 0;
+
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(status.Status);
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(status.Count.ToString());
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                    }
+                });
+            });
+        }
+
+        // Priority Distribution
+        if (report.IncludeSections.PriorityChart && stats.IncidentsByPriority?.Any() == true)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Distribución por Prioridad").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);
+                        columns.RelativeColumn(1);
+                        columns.RelativeColumn(2);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(LightGray).Padding(8).Text("Prioridad").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                    });
+
+                    var priorityOrder = new[] { "Crítica", "Alta", "Media", "Baja" };
+                    var orderedPriorities = stats.IncidentsByPriority
+                        .OrderBy(p => Array.IndexOf(priorityOrder, p.Priority) >= 0 
+                            ? Array.IndexOf(priorityOrder, p.Priority) 
+                            : 99);
+
+                    foreach (var priority in orderedPriorities)
+                    {
+                        var percentage = stats.TotalIncidents > 0
+                            ? Math.Round((double)priority.Count / stats.TotalIncidents * 100, 1)
+                            : 0;
+
+                        var color = priority.Priority switch
+                        {
+                            "Crítica" => DangerColor,
+                            "Alta" => WarningColor,
+                            "Media" => SecondaryColor,
+                            "Baja" => SuccessColor,
+                            _ => TextColor
+                        };
+
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(priority.Priority).FontColor(color);
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(priority.Count.ToString());
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                    }
+                });
+            });
+        }
+
+        // Technician Performance
+        if (report.IncludeSections.TechnicianTable && stats.IncidentsByTechnician?.Any() == true)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Rendimiento por Técnico").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);
+                        columns.RelativeColumn(1);
+                        columns.RelativeColumn(1);
+                        columns.RelativeColumn(2);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(LightGray).Padding(8).Text("Técnico").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Asignados").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Resueltos").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Tasa Resolución").Bold();
+                    });
+
+                    foreach (var tech in stats.IncidentsByTechnician.OrderByDescending(t => t.ResolvedIncidents))
+                    {
+                        var rateColor = (double)tech.ResolutionRate >= 80 ? SuccessColor :
+                                       (double)tech.ResolutionRate >= 50 ? WarningColor : DangerColor;
+
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(tech.TechnicianName);
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(tech.TotalAssigned.ToString());
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(tech.ResolvedIncidents.ToString());
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{tech.ResolutionRate:F1}%").FontColor(rateColor);
+                    }
+                });
+            });
+        }
+
+        // Services
+        if (report.IncludeSections.ServiceTable && stats.IncidentsByService?.Any() == true)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Incidentes por Servicio").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);
+                        columns.RelativeColumn(1);
+                        columns.RelativeColumn(2);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(LightGray).Padding(8).Text("Servicio").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                    });
+
+                    foreach (var service in stats.IncidentsByService.OrderByDescending(s => s.TotalIncidents).Take(10))
+                    {
+                        var percentage = stats.TotalIncidents > 0
+                            ? Math.Round((double)service.TotalIncidents / stats.TotalIncidents * 100, 1)
+                            : 0;
+
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(service.ServiceName);
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(service.TotalIncidents.ToString());
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                    }
+                });
+            });
+        }
+
+        // Incident Types
+        if (report.IncludeSections.TypeTable && stats.IncidentsByType?.Any() == true)
+        {
+            column.Item().Padding(10).Column(col =>
+            {
+                col.Item().PaddingTop(15).Text("Incidentes por Tipo").FontSize(14).Bold().FontColor(PrimaryColor);
+                col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
+
+                col.Item().PaddingTop(10).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(3);
+                        columns.RelativeColumn(1);
+                        columns.RelativeColumn(2);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Background(LightGray).Padding(8).Text("Tipo").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                    });
+
+                    foreach (var type in stats.IncidentsByType.OrderByDescending(t => t.Count).Take(10))
+                    {
+                        var percentage = stats.TotalIncidents > 0
+                            ? Math.Round((double)type.Count / stats.TotalIncidents * 100, 1)
+                            : 0;
+
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(type.TypeDisplay ?? type.Type);
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(type.Count.ToString());
+                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                    }
+                });
+            });
+        }
+    }
+
+    private void AddKpiCard(IContainer container, string title, string value, string color)
+    {
+        container
+            .Border(1)
+            .BorderColor(LightGray)
+            .Background(Colors.White)
+            .Padding(10)
+            .Column(column =>
+            {
+                column.Item()
+                    .Text(value)
+                    .FontSize(24)
+                    .Bold()
+                    .FontColor(color);
+
+                column.Item()
+                    .Text(title)
+                    .FontSize(9)
+                    .FontColor(MediumGray);
+            });
+    }
+
+    private void AddMetricCard(IContainer container, string title, string value, string color)
+    {
+        container
+            .Border(1)
+            .BorderColor(LightGray)
+            .Background(Colors.White)
+            .Padding(15)
+            .Column(column =>
+            {
+                column.Item()
+                    .Text(value)
+                    .FontSize(20)
+                    .Bold()
+                    .FontColor(color);
+
+                column.Item()
+                    .Text(title)
+                    .FontSize(9)
+                    .FontColor(MediumGray);
+            });
     }
 
     public Task<byte[]> GenerateDashboardExcelAsync(DashboardReportDto reportData, CancellationToken cancellationToken = default)
@@ -282,501 +706,4 @@ public class DashboardReportService : IReportService
         sheet.Columns().AdjustToContents();
     }
 
-    private void ComposeHeader(IContainer container, DashboardReportDto report)
-    {
-        container.Row(row =>
-        {
-            row.RelativeItem().Column(column =>
-            {
-                column.Item()
-                    .Text(report.OrganizationName)
-                    .FontSize(20)
-                    .Bold()
-                    .FontColor(PrimaryColor);
-
-                column.Item()
-                    .Text(report.Title)
-                    .FontSize(16)
-                    .SemiBold()
-                    .FontColor(TextColor);
-
-                if (!string.IsNullOrEmpty(report.Subtitle))
-                {
-                    column.Item()
-                        .Text(report.Subtitle)
-                        .FontSize(11)
-                        .FontColor(MediumGray);
-                }
-
-                column.Item()
-                    .PaddingTop(5)
-                    .Text($"Período: {report.StartDate:dd/MM/yyyy} - {report.EndDate:dd/MM/yyyy}")
-                    .FontSize(10)
-                    .FontColor(MediumGray);
-            });
-
-            row.ConstantItem(100).Column(column =>
-            {
-                column.Item()
-                    .AlignRight()
-                    .Text(report.GeneratedAt.ToString("dd/MM/yyyy"))
-                    .FontSize(10)
-                    .FontColor(MediumGray);
-
-                column.Item()
-                    .AlignRight()
-                    .Text(report.GeneratedAt.ToString("HH:mm"))
-                    .FontSize(9)
-                    .FontColor(MediumGray);
-            });
-        });
-
-        container.PaddingBottom(15);
-    }
-
-    private void ComposeContent(IContainer container, DashboardReportDto report)
-    {
-        container.Column(column =>
-        {
-            // Executive Summary
-            if (report.IncludeSections.Summary)
-            {
-                column.Item().Element(c => ComposeSummarySection(c, report));
-            }
-
-            // KPI Cards
-            if (report.IncludeSections.KpiCards)
-            {
-                column.Item().Element(c => ComposeKpiSection(c, report));
-            }
-
-            // Time Metrics
-            if (report.IncludeSections.TimeMetrics)
-            {
-                column.Item().Element(c => ComposeTimeMetricsSection(c, report));
-            }
-
-            // Status Distribution
-            if (report.IncludeSections.StatusChart)
-            {
-                column.Item().Element(c => ComposeStatusSection(c, report));
-            }
-
-            // Priority Distribution
-            if (report.IncludeSections.PriorityChart)
-            {
-                column.Item().Element(c => ComposePrioritySection(c, report));
-            }
-
-            // Technician Performance
-            if (report.IncludeSections.TechnicianTable)
-            {
-                column.Item().Element(c => ComposeTechnicianSection(c, report));
-            }
-
-            // Services
-            if (report.IncludeSections.ServiceTable)
-            {
-                column.Item().Element(c => ComposeServiceSection(c, report));
-            }
-
-            // Incident Types
-            if (report.IncludeSections.TypeTable)
-            {
-                column.Item().Element(c => ComposeTypeSection(c, report));
-            }
-        });
-    }
-
-    private void ComposeSummarySection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-        var resolutionRate = stats.TotalIncidents > 0
-            ? Math.Round((double)(stats.ResolvedIncidents + stats.ClosedIncidents) / stats.TotalIncidents * 100, 1)
-            : 0;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().Text("Resumen Ejecutivo").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Text(text =>
-            {
-                text.Span("Durante el período seleccionado, el sistema registró un total de ");
-                text.Span($"{stats.TotalIncidents} incidentes").Bold();
-                text.Span(", de los cuales ");
-                text.Span($"{stats.ResolvedIncidents + stats.ClosedIncidents} ({resolutionRate}%)").Bold().FontColor(SuccessColor);
-                text.Span(" fueron resueltos exitosamente. ");
-                
-                if (stats.EscalatedIncidents > 0)
-                {
-                    text.Span($"Se escalaron {stats.EscalatedIncidents} incidentes").FontColor(WarningColor);
-                    text.Span(". ");
-                }
-                
-                if (stats.UnassignedIncidents > 0)
-                {
-                    text.Span($"Actualmente hay {stats.UnassignedIncidents} incidentes sin asignar").FontColor(DangerColor);
-                    text.Span(".");
-                }
-            });
-
-            column.Item().PaddingTop(5).Text(text =>
-            {
-                text.Span("El tiempo promedio de resolución fue de ");
-                text.Span($"{stats.AverageResolutionTimeHours:F1} horas").Bold();
-                text.Span(" y el tiempo promedio de primera respuesta fue de ");
-                text.Span($"{stats.AverageFirstResponseTimeHours:F1} horas").Bold();
-                text.Span(".");
-            });
-        });
-    }
-
-    private void ComposeKpiSection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Indicadores Clave (KPIs)").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Row(row =>
-            {
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "Total Incidentes", stats.TotalIncidents.ToString(), PrimaryColor));
-                row.ConstantItem(10);
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "Abiertos", stats.OpenIncidents.ToString(), WarningColor));
-                row.ConstantItem(10);
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "En Progreso", stats.InProgressIncidents.ToString(), SecondaryColor));
-                row.ConstantItem(10);
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "Resueltos", stats.ResolvedIncidents.ToString(), SuccessColor));
-            });
-
-            column.Item().PaddingTop(10).Row(row =>
-            {
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "Cerrados", stats.ClosedIncidents.ToString(), "#6B7280"));
-                row.ConstantItem(10);
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "Escalados", stats.EscalatedIncidents.ToString(), DangerColor));
-                row.ConstantItem(10);
-                row.RelativeItem().Element(c => ComposeKpiCard(c, "Sin Asignar", stats.UnassignedIncidents.ToString(), "#DC2626"));
-                row.ConstantItem(10);
-                row.RelativeItem(); // Empty space for alignment
-            });
-        });
-    }
-
-    private void ComposeKpiCard(IContainer container, string title, string value, string color)
-    {
-        container
-            .Border(1)
-            .BorderColor(LightGray)
-            .Background(Colors.White)
-            .Padding(10)
-            .Column(column =>
-            {
-                column.Item()
-                    .Text(value)
-                    .FontSize(24)
-                    .Bold()
-                    .FontColor(color);
-
-                column.Item()
-                    .Text(title)
-                    .FontSize(9)
-                    .FontColor(MediumGray);
-            });
-    }
-
-    private void ComposeTimeMetricsSection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Métricas de Tiempo").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Row(row =>
-            {
-                row.RelativeItem()
-                    .Border(1)
-                    .BorderColor(LightGray)
-                    .Padding(15)
-                    .Column(col =>
-                    {
-                        col.Item().Text("Tiempo Promedio de Resolución").FontSize(10).FontColor(MediumGray);
-                        col.Item().PaddingTop(5).Row(r =>
-                        {
-                            r.AutoItem().Text($"{stats.AverageResolutionTimeHours:F1}").FontSize(28).Bold().FontColor(PrimaryColor);
-                            r.AutoItem().PaddingLeft(5).AlignBottom().Text("horas").FontSize(12).FontColor(MediumGray);
-                        });
-                    });
-
-                row.ConstantItem(15);
-
-                row.RelativeItem()
-                    .Border(1)
-                    .BorderColor(LightGray)
-                    .Padding(15)
-                    .Column(col =>
-                    {
-                        col.Item().Text("Tiempo Promedio Primera Respuesta").FontSize(10).FontColor(MediumGray);
-                        col.Item().PaddingTop(5).Row(r =>
-                        {
-                            r.AutoItem().Text($"{stats.AverageFirstResponseTimeHours:F1}").FontSize(28).Bold().FontColor(SecondaryColor);
-                            r.AutoItem().PaddingLeft(5).AlignBottom().Text("horas").FontSize(12).FontColor(MediumGray);
-                        });
-                    });
-            });
-        });
-    }
-
-    private void ComposeStatusSection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-        if (stats.IncidentsByStatus == null || !stats.IncidentsByStatus.Any()) return;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Distribución por Estado").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(3);
-                    columns.RelativeColumn(1);
-                    columns.RelativeColumn(2);
-                });
-
-                table.Header(header =>
-                {
-                    header.Cell().Background(LightGray).Padding(8).Text("Estado").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
-                });
-
-                foreach (var status in stats.IncidentsByStatus.OrderByDescending(s => s.Count))
-                {
-                    var percentage = stats.TotalIncidents > 0
-                        ? Math.Round((double)status.Count / stats.TotalIncidents * 100, 1)
-                        : 0;
-
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(status.Status);
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(status.Count.ToString());
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
-                }
-            });
-        });
-    }
-
-    private void ComposePrioritySection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-        if (stats.IncidentsByPriority == null || !stats.IncidentsByPriority.Any()) return;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Distribución por Prioridad").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(3);
-                    columns.RelativeColumn(1);
-                    columns.RelativeColumn(2);
-                });
-
-                table.Header(header =>
-                {
-                    header.Cell().Background(LightGray).Padding(8).Text("Prioridad").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
-                });
-
-                var priorityOrder = new[] { "Crítica", "Alta", "Media", "Baja" };
-                var orderedPriorities = stats.IncidentsByPriority
-                    .OrderBy(p => Array.IndexOf(priorityOrder, p.Priority) >= 0 
-                        ? Array.IndexOf(priorityOrder, p.Priority) 
-                        : 99);
-
-                foreach (var priority in orderedPriorities)
-                {
-                    var percentage = stats.TotalIncidents > 0
-                        ? Math.Round((double)priority.Count / stats.TotalIncidents * 100, 1)
-                        : 0;
-
-                    var color = priority.Priority switch
-                    {
-                        "Crítica" => DangerColor,
-                        "Alta" => WarningColor,
-                        "Media" => SecondaryColor,
-                        "Baja" => SuccessColor,
-                        _ => TextColor
-                    };
-
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(priority.Priority).FontColor(color);
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(priority.Count.ToString());
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
-                }
-            });
-        });
-    }
-
-    private void ComposeTechnicianSection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-        if (stats.IncidentsByTechnician == null || !stats.IncidentsByTechnician.Any()) return;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Rendimiento por Técnico").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(3);
-                    columns.RelativeColumn(1);
-                    columns.RelativeColumn(1);
-                    columns.RelativeColumn(2);
-                });
-
-                table.Header(header =>
-                {
-                    header.Cell().Background(LightGray).Padding(8).Text("Técnico").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Asignados").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Resueltos").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Tasa Resolución").Bold();
-                });
-
-                foreach (var tech in stats.IncidentsByTechnician.OrderByDescending(t => t.ResolvedIncidents))
-                {
-                    var rateColor = (double)tech.ResolutionRate >= 80 ? SuccessColor :
-                                   (double)tech.ResolutionRate >= 50 ? WarningColor : DangerColor;
-
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(tech.TechnicianName);
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(tech.TotalAssigned.ToString());
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(tech.ResolvedIncidents.ToString());
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{tech.ResolutionRate:F1}%").FontColor(rateColor);
-                }
-            });
-        });
-    }
-
-    private void ComposeServiceSection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-        if (stats.IncidentsByService == null || !stats.IncidentsByService.Any()) return;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Incidentes por Servicio").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(3);
-                    columns.RelativeColumn(1);
-                    columns.RelativeColumn(2);
-                });
-
-                table.Header(header =>
-                {
-                    header.Cell().Background(LightGray).Padding(8).Text("Servicio").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
-                });
-
-                foreach (var service in stats.IncidentsByService.OrderByDescending(s => s.TotalIncidents).Take(10))
-                {
-                    var percentage = stats.TotalIncidents > 0
-                        ? Math.Round((double)service.TotalIncidents / stats.TotalIncidents * 100, 1)
-                        : 0;
-
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(service.ServiceName);
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(service.TotalIncidents.ToString());
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
-                }
-            });
-        });
-    }
-
-    private void ComposeTypeSection(IContainer container, DashboardReportDto report)
-    {
-        var stats = report.Statistics;
-        if (stats.IncidentsByType == null || !stats.IncidentsByType.Any()) return;
-
-        container.Padding(10).Column(column =>
-        {
-            column.Item().PaddingTop(15).Text("Incidentes por Tipo").FontSize(14).Bold().FontColor(PrimaryColor);
-            column.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
-
-            column.Item().PaddingTop(10).Table(table =>
-            {
-                table.ColumnsDefinition(columns =>
-                {
-                    columns.RelativeColumn(3);
-                    columns.RelativeColumn(1);
-                    columns.RelativeColumn(2);
-                });
-
-                table.Header(header =>
-                {
-                    header.Cell().Background(LightGray).Padding(8).Text("Tipo").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
-                    header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
-                });
-
-                foreach (var type in stats.IncidentsByType.OrderByDescending(t => t.Count).Take(10))
-                {
-                    var percentage = stats.TotalIncidents > 0
-                        ? Math.Round((double)type.Count / stats.TotalIncidents * 100, 1)
-                        : 0;
-
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(type.TypeDisplay ?? type.Type);
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(type.Count.ToString());
-                    table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
-                }
-            });
-        });
-    }
-
-    private void ComposeFooter(IContainer container, DashboardReportDto report)
-    {
-        container.Row(row =>
-        {
-            row.RelativeItem().Column(column =>
-            {
-                column.Item()
-                    .Text($"Generado por: {report.GeneratedBy}")
-                    .FontSize(8)
-                    .FontColor(MediumGray);
-
-                column.Item()
-                    .Text($"Fecha de generación: {report.GeneratedAt:dd/MM/yyyy HH:mm:ss}")
-                    .FontSize(8)
-                    .FontColor(MediumGray);
-            });
-
-            row.RelativeItem().AlignRight().Column(column =>
-            {
-                column.Item()
-                    .AlignRight()
-                    .Text(text =>
-                    {
-                        text.Span("Página ").FontSize(8).FontColor(MediumGray);
-                        text.CurrentPageNumber().FontSize(8).FontColor(MediumGray);
-                        text.Span(" de ").FontSize(8).FontColor(MediumGray);
-                        text.TotalPages().FontSize(8).FontColor(MediumGray);
-                    });
-            });
-        });
-    }
 }
