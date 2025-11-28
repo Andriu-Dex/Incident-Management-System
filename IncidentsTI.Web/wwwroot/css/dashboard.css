@@ -271,3 +271,18 @@ canvas {
 .priority-medium { color: #2563EB; }
 .priority-high { color: #D97706; }
 .priority-critical { color: #DC2626; }
+
+/* ===== Blazor Error UI - Hidden ===== */
+#blazor-error-ui {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Fallback para el banner de error por defecto de Blazor */
+.blazor-error-boundary,
+.blazor-error-ui,
+[id*="blazor-error"] {
+    display: none !important;
+}
