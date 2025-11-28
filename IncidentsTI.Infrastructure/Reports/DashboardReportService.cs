@@ -1,9 +1,13 @@
 using ClosedXML.Excel;
+using IncidentsTI.Application.DTOs.Statistics;
 using IncidentsTI.Application.Reports.DTOs;
 using IncidentsTI.Application.Reports.Interfaces;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using ScottPlot;
+using ScottPlot.Palettes;
+using ScottPlot.Plottables;
 
 namespace IncidentsTI.Infrastructure.Reports;
 
@@ -230,33 +234,78 @@ public class DashboardReportService : IReportService
                 col.Item().PaddingTop(15).Text("Distribución por Estado").FontSize(14).Bold().FontColor(PrimaryColor);
                 col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
 
-                col.Item().PaddingTop(10).Table(table =>
+                // Check if charts should be included
+                if (report.IncludeSections.IncludeCharts)
                 {
-                    table.ColumnsDefinition(columns =>
+                    // Row with chart and table side by side
+                    col.Item().PaddingTop(10).Row(row =>
                     {
-                        columns.RelativeColumn(3);
-                        columns.RelativeColumn(1);
-                        columns.RelativeColumn(2);
+                        // Donut Chart - centered with better proportions
+                        row.RelativeItem(1.2f).AlignCenter().AlignMiddle().Height(200).Svg(size => GenerateStatusDonutChart(stats, size));
+                        
+                        row.ConstantItem(20);
+                        
+                        // Table
+                        row.RelativeItem(1.3f).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(3);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(2);
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Background(LightGray).Padding(8).Text("Estado").Bold();
+                                header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                                header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                            });
+
+                            foreach (var status in stats.IncidentsByStatus.OrderByDescending(s => s.Count))
+                            {
+                                var percentage = stats.TotalIncidents > 0
+                                    ? Math.Round((double)status.Count / stats.TotalIncidents * 100, 1)
+                                    : 0;
+
+                                table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(status.Status);
+                                table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(status.Count.ToString());
+                                table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                            }
+                        });
                     });
-
-                    table.Header(header =>
+                }
+                else
+                {
+                    // Only table (no chart)
+                    col.Item().PaddingTop(10).Table(table =>
                     {
-                        header.Cell().Background(LightGray).Padding(8).Text("Estado").Bold();
-                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
-                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(3);
+                            columns.RelativeColumn(1);
+                            columns.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(LightGray).Padding(8).Text("Estado").Bold();
+                            header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                            header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                        });
+
+                        foreach (var status in stats.IncidentsByStatus.OrderByDescending(s => s.Count))
+                        {
+                            var percentage = stats.TotalIncidents > 0
+                                ? Math.Round((double)status.Count / stats.TotalIncidents * 100, 1)
+                                : 0;
+
+                            table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(status.Status);
+                            table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(status.Count.ToString());
+                            table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                        }
                     });
-
-                    foreach (var status in stats.IncidentsByStatus.OrderByDescending(s => s.Count))
-                    {
-                        var percentage = stats.TotalIncidents > 0
-                            ? Math.Round((double)status.Count / stats.TotalIncidents * 100, 1)
-                            : 0;
-
-                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(status.Status);
-                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(status.Count.ToString());
-                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
-                    }
-                });
+                }
             });
         }
 
@@ -268,48 +317,108 @@ public class DashboardReportService : IReportService
                 col.Item().PaddingTop(15).Text("Distribución por Prioridad").FontSize(14).Bold().FontColor(PrimaryColor);
                 col.Item().PaddingTop(10).BorderBottom(1).BorderColor(LightGray);
 
-                col.Item().PaddingTop(10).Table(table =>
+                // Check if charts should be included
+                if (report.IncludeSections.IncludeCharts)
                 {
-                    table.ColumnsDefinition(columns =>
+                    // Row with chart and table side by side
+                    col.Item().PaddingTop(10).Row(row =>
                     {
-                        columns.RelativeColumn(3);
-                        columns.RelativeColumn(1);
-                        columns.RelativeColumn(2);
-                    });
-
-                    table.Header(header =>
-                    {
-                        header.Cell().Background(LightGray).Padding(8).Text("Prioridad").Bold();
-                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
-                        header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
-                    });
-
-                    var priorityOrder = new[] { "Crítica", "Alta", "Media", "Baja" };
-                    var orderedPriorities = stats.IncidentsByPriority
-                        .OrderBy(p => Array.IndexOf(priorityOrder, p.Priority) >= 0 
-                            ? Array.IndexOf(priorityOrder, p.Priority) 
-                            : 99);
-
-                    foreach (var priority in orderedPriorities)
-                    {
-                        var percentage = stats.TotalIncidents > 0
-                            ? Math.Round((double)priority.Count / stats.TotalIncidents * 100, 1)
-                            : 0;
-
-                        var color = priority.Priority switch
+                        // Bar Chart - with better proportions
+                        row.RelativeItem(1.2f).AlignCenter().Height(160).Svg(size => GeneratePriorityBarChart(stats, size));
+                        
+                        row.ConstantItem(20);
+                        
+                        // Table
+                        row.RelativeItem(1.3f).Table(table =>
                         {
-                            "Crítica" => DangerColor,
-                            "Alta" => WarningColor,
-                            "Media" => SecondaryColor,
-                            "Baja" => SuccessColor,
-                            _ => TextColor
-                        };
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(3);
+                                columns.RelativeColumn(1);
+                                columns.RelativeColumn(2);
+                            });
 
-                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(priority.Priority).FontColor(color);
-                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(priority.Count.ToString());
-                        table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
-                    }
-                });
+                            table.Header(header =>
+                            {
+                                header.Cell().Background(LightGray).Padding(8).Text("Prioridad").Bold();
+                                header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                                header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                            });
+
+                            var priorityOrder = new[] { "Crítica", "Alta", "Media", "Baja" };
+                            var orderedPriorities = stats.IncidentsByPriority
+                                .OrderBy(p => Array.IndexOf(priorityOrder, p.Priority) >= 0 
+                                    ? Array.IndexOf(priorityOrder, p.Priority) 
+                                    : 99);
+
+                            foreach (var priority in orderedPriorities)
+                            {
+                                var percentage = stats.TotalIncidents > 0
+                                    ? Math.Round((double)priority.Count / stats.TotalIncidents * 100, 1)
+                                    : 0;
+
+                                var color = priority.Priority switch
+                                {
+                                    "Crítica" => DangerColor,
+                                    "Alta" => WarningColor,
+                                    "Media" => SecondaryColor,
+                                    "Baja" => SuccessColor,
+                                    _ => TextColor
+                                };
+
+                                table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(priority.Priority).FontColor(color);
+                                table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(priority.Count.ToString());
+                                table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                            }
+                        });
+                    });
+                }
+                else
+                {
+                    // Only table (no chart)
+                    col.Item().PaddingTop(10).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(3);
+                            columns.RelativeColumn(1);
+                            columns.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(LightGray).Padding(8).Text("Prioridad").Bold();
+                            header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Cantidad").Bold();
+                            header.Cell().Background(LightGray).Padding(8).AlignRight().Text("Porcentaje").Bold();
+                        });
+
+                        var priorityOrder = new[] { "Crítica", "Alta", "Media", "Baja" };
+                        var orderedPriorities = stats.IncidentsByPriority
+                            .OrderBy(p => Array.IndexOf(priorityOrder, p.Priority) >= 0 
+                                ? Array.IndexOf(priorityOrder, p.Priority) 
+                                : 99);
+
+                        foreach (var priority in orderedPriorities)
+                        {
+                            var percentage = stats.TotalIncidents > 0
+                                ? Math.Round((double)priority.Count / stats.TotalIncidents * 100, 1)
+                                : 0;
+
+                            var color = priority.Priority switch
+                            {
+                                "Crítica" => DangerColor,
+                                "Alta" => WarningColor,
+                                "Media" => SecondaryColor,
+                                "Baja" => SuccessColor,
+                                _ => TextColor
+                            };
+
+                            table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).Text(priority.Priority).FontColor(color);
+                            table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text(priority.Count.ToString());
+                            table.Cell().BorderBottom(1).BorderColor(LightGray).Padding(8).AlignRight().Text($"{percentage}%");
+                        }
+                    });
+                }
             });
         }
 
@@ -435,7 +544,7 @@ public class DashboardReportService : IReportService
         container
             .Border(1)
             .BorderColor(LightGray)
-            .Background(Colors.White)
+            .Background(QuestPDF.Helpers.Colors.White)
             .Padding(10)
             .Column(column =>
             {
@@ -457,7 +566,7 @@ public class DashboardReportService : IReportService
         container
             .Border(1)
             .BorderColor(LightGray)
-            .Background(Colors.White)
+            .Background(QuestPDF.Helpers.Colors.White)
             .Padding(15)
             .Column(column =>
             {
@@ -705,5 +814,160 @@ public class DashboardReportService : IReportService
 
         sheet.Columns().AdjustToContents();
     }
+
+    #region Chart Generation Methods
+
+    /// <summary>
+    /// Generates a donut chart for incident status distribution
+    /// </summary>
+    private string GenerateStatusDonutChart(DashboardStatisticsDto stats, Size size)
+    {
+        try
+        {
+            var plot = new Plot();
+            
+            // Enhanced status colors with better vibrancy and contrast
+            var statusColors = new Dictionary<string, ScottPlot.Color>
+            {
+                { "Abierto", new ScottPlot.Color(251, 191, 36) },      // Warm amber for attention
+                { "En Progreso", new ScottPlot.Color(79, 70, 229) },   // Rich indigo for active work
+                { "Resuelto", new ScottPlot.Color(34, 197, 94) },      // Vibrant green for success
+                { "Cerrado", new ScottPlot.Color(100, 116, 139) },     // Slate gray for completed
+                { "Escalado", new ScottPlot.Color(239, 68, 68) },      // Red for urgency
+                { "Pendiente", new ScottPlot.Color(56, 189, 248) }     // Sky blue for waiting
+            };
+
+            var slices = new List<PieSlice>();
+            
+            foreach (var status in stats.IncidentsByStatus.Where(s => s.Count > 0).OrderByDescending(s => s.Count))
+            {
+                var color = statusColors.GetValueOrDefault(status.Status, new ScottPlot.Color(148, 163, 184));
+                slices.Add(new PieSlice 
+                { 
+                    Value = status.Count, 
+                    FillColor = color, 
+                    Label = $"{status.Status}\n({status.Count})" 
+                });
+            }
+
+            if (slices.Count == 0)
+            {
+                return GenerateEmptyChartSvg(size, "Sin datos");
+            }
+
+            var pie = plot.Add.Pie(slices);
+            pie.DonutFraction = 0.5;
+            pie.SliceLabelDistance = 1.4;
+            pie.LineColor = ScottPlot.Colors.White;
+            pie.LineWidth = 3;
+
+            foreach (var slice in pie.Slices)
+            {
+                slice.LabelStyle.FontSize = 10;
+                slice.LabelStyle.Bold = true;
+                slice.LabelStyle.ForeColor = new ScottPlot.Color(55, 65, 81);
+            }
+
+            plot.Axes.Frameless();
+            plot.HideGrid();
+            plot.DataBackground.Color = ScottPlot.Colors.Transparent;
+            plot.FigureBackground.Color = ScottPlot.Colors.Transparent;
+
+            return plot.GetSvgXml((int)size.Width, (int)size.Height);
+        }
+        catch
+        {
+            return GenerateEmptyChartSvg(size, "Error generando gráfico");
+        }
+    }
+
+    /// <summary>
+    /// Generates a horizontal bar chart for priority distribution
+    /// </summary>
+    private string GeneratePriorityBarChart(DashboardStatisticsDto stats, Size size)
+    {
+        try
+        {
+            var plot = new Plot();
+
+            // Enhanced priority colors with gradients feel
+            var priorityColors = new Dictionary<string, ScottPlot.Color>
+            {
+                { "Crítica", new ScottPlot.Color(220, 38, 38) },    // Vivid red
+                { "Alta", new ScottPlot.Color(245, 158, 11) },      // Warm amber
+                { "Media", new ScottPlot.Color(79, 70, 229) },      // Rich indigo
+                { "Baja", new ScottPlot.Color(34, 197, 94) }        // Fresh green
+            };
+            
+            var priorityOrder = new[] { "Crítica", "Alta", "Media", "Baja" };
+
+            var orderedPriorities = stats.IncidentsByPriority
+                .OrderBy(p => Array.IndexOf(priorityOrder, p.Priority) >= 0 
+                    ? Array.IndexOf(priorityOrder, p.Priority) 
+                    : 99)
+                .ToList();
+
+            if (orderedPriorities.Count == 0)
+            {
+                return GenerateEmptyChartSvg(size, "Sin datos");
+            }
+
+            var bars = new List<Bar>();
+            var ticks = new List<Tick>();
+
+            for (int i = 0; i < orderedPriorities.Count; i++)
+            {
+                var priority = orderedPriorities[i];
+                var color = priorityColors.GetValueOrDefault(priority.Priority, new ScottPlot.Color(148, 163, 184));
+                
+                bars.Add(new Bar
+                {
+                    Position = i,
+                    Value = priority.Count,
+                    FillColor = color,
+                    Size = 0.7
+                });
+                
+                ticks.Add(new Tick(i, priority.Priority));
+            }
+
+            var barPlot = plot.Add.Bars(bars);
+            barPlot.Horizontal = true;
+
+            plot.Axes.Left.TickGenerator = new ScottPlot.TickGenerators.NumericManual(ticks.ToArray());
+            plot.Axes.Left.MajorTickStyle.Length = 0;
+            plot.Axes.Left.TickLabelStyle.FontSize = 11;
+            plot.Axes.Left.TickLabelStyle.Bold = true;
+            plot.Axes.Left.TickLabelStyle.ForeColor = new ScottPlot.Color(55, 65, 81);
+            plot.Axes.Bottom.TickLabelStyle.FontSize = 10;
+            plot.Axes.Bottom.TickLabelStyle.ForeColor = new ScottPlot.Color(107, 114, 128);
+            
+            plot.Axes.Margins(left: 0.18, right: 0.08, top: 0.12, bottom: 0.12);
+            plot.Grid.XAxisStyle.IsVisible = false;
+            plot.Grid.YAxisStyle.IsVisible = false;
+            
+            plot.DataBackground.Color = ScottPlot.Colors.Transparent;
+            plot.FigureBackground.Color = ScottPlot.Colors.Transparent;
+
+            return plot.GetSvgXml((int)size.Width, (int)size.Height);
+        }
+        catch
+        {
+            return GenerateEmptyChartSvg(size, "Error generando gráfico");
+        }
+    }
+
+    /// <summary>
+    /// Generates an empty chart placeholder SVG
+    /// </summary>
+    private string GenerateEmptyChartSvg(Size size, string message)
+    {
+        return $@"<svg xmlns='http://www.w3.org/2000/svg' width='{size.Width}' height='{size.Height}' viewBox='0 0 {size.Width} {size.Height}'>
+            <rect width='100%' height='100%' fill='#F9FAFB' rx='8'/>
+            <text x='50%' y='50%' text-anchor='middle' dy='.3em' fill='#9CA3AF' font-size='12'>{message}</text>
+        </svg>";
+    }
+
+    #endregion
 
 }

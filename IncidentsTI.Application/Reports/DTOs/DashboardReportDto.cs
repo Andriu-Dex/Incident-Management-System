@@ -73,6 +73,11 @@ public class ReportSections
     public bool ServiceTable { get; set; } = true;
     public bool TypeTable { get; set; } = true;
     public bool TimeMetrics { get; set; } = true;
+    
+    /// <summary>
+    /// Include visual charts in PDF report (donut, bar charts)
+    /// </summary>
+    public bool IncludeCharts { get; set; } = true;
 }
 
 /// <summary>

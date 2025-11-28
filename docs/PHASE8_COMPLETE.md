@@ -1,6 +1,6 @@
-# 📊 Fase 8: Estadísticas y Reportes Básicos - COMPLETADA
+# 📊 Fase 8: Estadísticas y Reportes - COMPLETADA
 
-La Fase 8 implementa un dashboard completo de estadísticas y métricas para administradores, proporcionando visualizaciones interactivas y análisis de datos del sistema de incidentes.
+La Fase 8 implementa un dashboard profesional de estadísticas y métricas para administradores, con diseño basado en **ISO 9241** (ergonomía), **DCU** (Diseño Centrado en Usuario) y **WCAG 2.1** (accesibilidad). Incluye visualizaciones interactivas con Chart.js, exportación de reportes en PDF y Excel con gráficos vectoriales, y una interfaz moderna con Tailwind CSS.
 
 ---
 
@@ -30,10 +30,21 @@ La Fase 8 implementa un dashboard completo de estadísticas y métricas para adm
 - ✅ Estadísticas por Servicio (total, abiertos, resueltos, tiempo promedio, %)
 - ✅ Rendimiento por Técnico (asignados, estados, tasa de resolución)
 
-### 5. **Filtros**
+### 5. **Filtros Avanzados**
 - ✅ Selector de fecha de inicio
 - ✅ Selector de fecha de fin
+- ✅ Períodos rápidos (7 días, 30 días, 3 meses, Este mes)
 - ✅ Botón de actualización
+
+### 6. **Exportación de Reportes**
+- ✅ Exportación a **PDF** con QuestPDF
+- ✅ Exportación a **Excel** con ClosedXML
+- ✅ **Gráficos vectoriales (SVG)** en PDF usando ScottPlot
+  - Gráfico Donut para distribución por estado
+  - Gráfico de barras horizontales para prioridades
+- ✅ Modal de configuración con secciones seleccionables
+- ✅ Opción para incluir/excluir gráficos visuales
+- ✅ Descarga automática vía JavaScript
 
 ---
 
@@ -51,26 +62,50 @@ DTOs/Statistics/
     ├── TypeStatDto               # Estadísticas por tipo
     ├── TechnicianStatDto         # Estadísticas por técnico
     └── TrendDataDto              # Datos de tendencias
+
+Reports/DTOs/
+└── DashboardReportDto.cs
+    ├── DashboardReportDto        # DTO para generación de reportes
+    ├── ReportSections            # Configuración de secciones a incluir
+    └── GenerateReportRequest     # Request para API de reportes
 ```
 
-### Application Layer - Queries
+### Application Layer - Queries & Handlers
 
 ```
 Queries/
-├── GetDashboardStatisticsQuery.cs      # Query principal del dashboard
-├── GetServiceStatisticsQuery.cs        # Estadísticas detalladas por servicio
-├── GetTechnicianStatisticsQuery.cs     # Rendimiento por técnico
-└── GetTrendDataQuery.cs                # Datos de tendencias (diario/semanal/mensual)
-```
+├── GetDashboardStatisticsQuery.cs
+├── GetServiceStatisticsQuery.cs
+├── GetTechnicianStatisticsQuery.cs
+└── GetTrendDataQuery.cs
 
-### Application Layer - Handlers
-
-```
 Handlers/
-├── GetDashboardStatisticsQueryHandler.cs   # Handler principal con cálculos completos
-├── GetServiceStatisticsQueryHandler.cs     # Handler de estadísticas de servicios
-├── GetTechnicianStatisticsQueryHandler.cs  # Handler de rendimiento de técnicos
-└── GetTrendDataQueryHandler.cs             # Handler de tendencias temporales
+├── GetDashboardStatisticsQueryHandler.cs
+├── GetServiceStatisticsQueryHandler.cs
+├── GetTechnicianStatisticsQueryHandler.cs
+└── GetTrendDataQueryHandler.cs
+```
+
+### Application Layer - Reports
+
+```
+Reports/
+├── Interfaces/
+│   └── IReportService.cs         # Contrato para generación de reportes
+└── DTOs/
+    └── DashboardReportDto.cs     # DTOs para reportes
+```
+
+### Infrastructure Layer - Reports
+
+```
+Reports/
+└── DashboardReportService.cs     # Implementación con QuestPDF + ScottPlot
+    ├── GenerateDashboardPdfAsync()
+    ├── GenerateDashboardExcelAsync()
+    ├── GenerateStatusDonutChart()    # Gráfico SVG donut
+    ├── GeneratePriorityBarChart()    # Gráfico SVG barras
+    └── GenerateEmptyChartSvg()       # Placeholder para errores
 ```
 
 ### Web Layer
@@ -78,14 +113,17 @@ Handlers/
 ```
 Components/
 ├── Pages/
-│   └── AdminDashboard.razor    # Página del dashboard (/admin/dashboard)
+│   └── AdminDashboard.razor          # Dashboard principal (/admin/dashboard)
+├── Shared/
+│   └── Dashboard/
+│       └── ReportPreviewModal.razor  # Modal de configuración de reportes
 ├── Layout/
-│   └── NavMenu.razor           # Modificado: enlace a Dashboard
-└── App.razor                   # Modificado: Chart.js CDN + charts.js
+│   └── NavMenu.razor                 # Enlace a Dashboard
+└── App.razor                         # Chart.js CDN + charts.js
 
 wwwroot/
 └── js/
-    └── charts.js               # Funciones de renderizado de gráficos
+    └── charts.js                     # Funciones de renderizado de gráficos
 ```
 
 ---
@@ -111,15 +149,22 @@ wwwroot/
 | Tiempo Promedio de Resolución | Azul | X min / X.X hrs / Xd Xh |
 | Tiempo Promedio de Primera Respuesta | Verde | X min / X.X hrs / Xd Xh |
 
-### Gráficos Chart.js
+### Gráficos Chart.js (Dashboard Web)
 
 | Gráfico | Tipo | Datos |
 |---------|------|-------|
-| Incidentes por Estado | Doughnut | Open, InProgress, Escalated, Resolved, Closed |
-| Incidentes por Prioridad | Doughnut | Low, Medium, High, Critical |
+| Incidentes por Estado | Doughnut | Abierto, En Progreso, Escalado, Resuelto, Cerrado |
+| Incidentes por Prioridad | Doughnut | Baja, Media, Alta, Crítica |
 | Tendencia 30 días | Línea | Creados vs Resueltos |
-| Incidentes por Tipo | Doughnut | Failure, Query, Request |
+| Incidentes por Tipo | Doughnut | Falla, Consulta, Requerimiento |
 | Top 5 Servicios | Barras horizontales | Servicios con más incidentes |
+
+### Gráficos ScottPlot (Reportes PDF)
+
+| Gráfico | Tipo | Características |
+|---------|------|-----------------|
+| Distribución por Estado | Donut (SVG) | Colores vibrantes, etiquetas con conteo |
+| Distribución por Prioridad | Barras Horizontales (SVG) | Ordenado por criticidad |
 
 ---
 
@@ -128,19 +173,20 @@ wwwroot/
 ### Estados
 | Estado | Color | Hex |
 |--------|-------|-----|
-| Abierto | Azul | #3B82F6 |
-| En Progreso | Ámbar | #F59E0B |
-| Escalado | Rojo | #EF4444 |
-| Resuelto | Verde | #10B981 |
-| Cerrado | Gris | #6B7280 |
+| Abierto | Warm Amber | #FBBF24 |
+| En Progreso | Rich Indigo | #4F46E5 |
+| Escalado | Red | #EF4444 |
+| Resuelto | Vibrant Green | #22C55E |
+| Cerrado | Slate | #64748B |
+| Pendiente | Sky Blue | #38BDF8 |
 
 ### Prioridades
 | Prioridad | Color | Hex |
 |-----------|-------|-----|
-| Baja | Verde | #10B981 |
-| Media | Ámbar | #F59E0B |
-| Alta | Naranja | #F97316 |
-| Crítica | Rojo | #EF4444 |
+| Baja | Fresh Green | #22C55E |
+| Media | Rich Indigo | #4F46E5 |
+| Alta | Warm Amber | #F59E0B |
+| Crítica | Vivid Red | #DC2626 |
 
 ### Tipos
 | Tipo | Color | Hex |
@@ -151,15 +197,42 @@ wwwroot/
 
 ---
 
+## 📄 Modal de Exportación de Reportes
+
+### Secciones Configurables
+| Sección | Descripción | Icono |
+|---------|-------------|-------|
+| Resumen Ejecutivo | Texto descriptivo con métricas clave | 📄 |
+| KPIs Principales | Tarjetas de indicadores | 📊 |
+| Métricas de Tiempo | Tiempos de resolución y respuesta | ⏱️ |
+| Por Estado | Tabla y gráfico de distribución | 🟢 |
+| Por Prioridad | Tabla y gráfico de prioridades | 📈 |
+| Tendencias | Gráfico de evolución temporal | 📉 |
+| Por Técnico | Tabla de rendimiento | 👥 |
+| Por Servicio | Tabla de incidentes por servicio | 🖥️ |
+| Por Tipo | Tabla de clasificación | 🏷️ |
+| **Gráficos Visuales** | Incluir/excluir gráficos en PDF | 📊 |
+
+### Formatos de Exportación
+| Formato | Librería | Características |
+|---------|----------|-----------------|
+| PDF | QuestPDF + ScottPlot | Gráficos vectoriales SVG, diseño profesional |
+| Excel | ClosedXML | Múltiples hojas, formato de celdas |
+
+---
+
 ## 🔒 Seguridad y Acceso
 
 - **Ruta:** `/admin/dashboard`
 - **Autorización:** Solo rol `Administrator`
 - **Directiva:** `@attribute [Authorize(Roles = "Administrator")]`
+- **APIs de Exportación:** 
+  - `POST /api/reports/dashboard/pdf`
+  - `POST /api/reports/dashboard/excel`
 
 ---
 
-## 📁 Archivos Creados
+## 📁 Archivos Creados/Modificados
 
 ### Application Layer
 ```
@@ -172,11 +245,23 @@ IncidentsTI.Application/
 │   ├── GetServiceStatisticsQuery.cs
 │   ├── GetTechnicianStatisticsQuery.cs
 │   └── GetTrendDataQuery.cs
-└── Handlers/
-    ├── GetDashboardStatisticsQueryHandler.cs
-    ├── GetServiceStatisticsQueryHandler.cs
-    ├── GetTechnicianStatisticsQueryHandler.cs
-    └── GetTrendDataQueryHandler.cs
+├── Handlers/
+│   ├── GetDashboardStatisticsQueryHandler.cs
+│   ├── GetServiceStatisticsQueryHandler.cs
+│   ├── GetTechnicianStatisticsQueryHandler.cs
+│   └── GetTrendDataQueryHandler.cs
+└── Reports/
+    ├── Interfaces/
+    │   └── IReportService.cs
+    └── DTOs/
+        └── DashboardReportDto.cs
+```
+
+### Infrastructure Layer
+```
+IncidentsTI.Infrastructure/
+└── Reports/
+    └── DashboardReportService.cs
 ```
 
 ### Web Layer
@@ -185,29 +270,31 @@ IncidentsTI.Web/
 ├── Components/
 │   ├── Pages/
 │   │   └── AdminDashboard.razor
+│   ├── Shared/
+│   │   └── Dashboard/
+│   │       └── ReportPreviewModal.razor
 │   ├── Layout/
-│   │   └── NavMenu.razor (modificado)
-│   └── App.razor (modificado)
-└── wwwroot/
-    └── js/
-        └── charts.js
-```
-
-### Documentación
-```
-docs/
-├── PHASE8_TESTING.md
-└── PHASE8_COMPLETE.md
+│   │   └── NavMenu.razor
+│   └── App.razor
+├── wwwroot/
+│   └── js/
+│       └── charts.js
+└── Program.cs (endpoints de reportes)
 ```
 
 ---
 
 ## 🛠️ Tecnologías Utilizadas
 
-- **Chart.js 4.4.1** - Librería de gráficos
-- **MediatR** - Patrón CQRS para queries
-- **Blazor Server** - Renderizado interactivo
-- **Tailwind CSS** - Estilos y diseño responsivo
+| Tecnología | Versión | Uso |
+|------------|---------|-----|
+| Chart.js | 4.4.1 | Gráficos interactivos en dashboard web |
+| QuestPDF | 2024.10.2 | Generación de documentos PDF |
+| ScottPlot | 5.0.39 | Gráficos vectoriales SVG para PDF |
+| ClosedXML | 0.102.3 | Generación de archivos Excel |
+| MediatR | - | Patrón CQRS para queries |
+| Blazor Server | .NET 8 | Renderizado interactivo |
+| Tailwind CSS | 3.x | Diseño responsivo y moderno |
 
 ---
 
@@ -222,6 +309,26 @@ docs/
 5. **Por Técnico:** Agrupación con tasa de resolución
 6. **Tendencia Diaria:** Últimos 30 días con creados/resueltos por día
 7. **Tendencia Mensual:** Últimos 12 meses
+
+---
+
+## 🎯 Principios de Diseño Aplicados
+
+### ISO 9241 (Ergonomía)
+- ✅ Diseño centrado en la tarea del usuario
+- ✅ Feedback visual inmediato
+- ✅ Consistencia en la interfaz
+
+### DCU (Diseño Centrado en Usuario)
+- ✅ Flujo intuitivo de navegación
+- ✅ Información relevante visible
+- ✅ Acciones principales accesibles
+
+### WCAG 2.1 (Accesibilidad)
+- ✅ Contraste de colores adecuado
+- ✅ Etiquetas ARIA para lectores de pantalla
+- ✅ Navegación por teclado
+- ✅ Textos descriptivos en iconos
 
 ---
 
@@ -243,4 +350,4 @@ docs/
 
 ---
 
-**Desarrollado con:** 🚀 .NET 8 + Blazor Server + Chart.js + Tailwind CSS
+**Desarrollado con:** 🚀 .NET 8 + Blazor Server + Chart.js + QuestPDF + ScottPlot + Tailwind CSS
