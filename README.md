@@ -37,10 +37,14 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 - Gestión de usuarios (crear, activar/desactivar)
 - Protección de rutas basada en roles
 
+![alt text](img/login.png)
+
 ### 📂 Catálogo de Servicios
 - 6 categorías de servicios de TI
 - CRUD completo de servicios
 - Asociación obligatoria servicio-incidente
+
+![alt text](img/catalogo.png)
 
 ### 🎫 Gestión de Incidentes
 - Generación automática de tickets (INC-YYYY-NNNN)
@@ -50,16 +54,22 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 - Asignación de técnicos
 - Vista personalizada por rol
 
+![alt text](img/gestion_incidentes.png)
+
 ### 📜 Trazabilidad Completa
 - Historial automático de cambios
 - Registro de todas las acciones
 - Sistema de comentarios (públicos e internos)
 - Auditoría de escalamientos
 
+![alt text](img/trazabilidad.png)
+
 ### ⬆️ Sistema de Escalamiento
 - 3 niveles de escalamiento
 - Registro de motivos y notas
 - Notificaciones automáticas
+
+![alt text](img/escalamiento.png)
 
 ### 📚 Base de Conocimiento
 - Artículos con pasos de solución
@@ -67,11 +77,15 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 - Vinculación con incidentes
 - Contador de usos
 
+![alt text](img/base_conocimiento.png)
+
 ### 🔔 Notificaciones In-App
 - Campana de notificaciones en tiempo real
 - 10 tipos de notificaciones
 - Marcar como leídas individual/masivamente
 - Auto-refresh cada 30 segundos
+
+![alt text](img/notificaciones.png)
 
 ### 📊 Dashboard de Estadísticas
 - KPIs en tiempo real
@@ -79,6 +93,9 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 - Métricas de tiempo de resolución
 - Rendimiento por técnico y servicio
 - Exportación a PDF y Excel con gráficos
+
+![alt text](img/dashboard1.png)
+![alt text](img/dashboard2.png)
 
 ### 🎨 UI/UX Moderno
 - Diseño responsive (móvil, tablet, desktop)
