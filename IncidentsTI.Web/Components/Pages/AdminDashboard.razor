@@ -592,11 +592,10 @@
         await LoadStatistics();
     }
 
-    private async Task HandleExport(string format)
+    private void HandleExport()
     {
         // Abrir el modal de configuración de reportes
         showReportModal = true;
-        await Task.CompletedTask;
     }
 
     private async Task HandleGenerateReport(GenerateReportRequest request)
