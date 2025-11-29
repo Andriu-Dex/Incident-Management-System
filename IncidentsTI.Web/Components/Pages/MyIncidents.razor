@@ -11,6 +11,7 @@
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 @implements IDisposable
 
@@ -195,6 +196,7 @@
     private string statusFilter = "";
     private string priorityFilter = "";
     private bool isLoading = true;
+    private DotNetObjectReference<MyIncidents>? dotNetRef;
     
     // Resolution Modal
     private bool showResolutionModal = false;
@@ -218,6 +220,22 @@
         Navigation.LocationChanged += OnLocationChanged;
         
         await LoadIncidents();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerSignalRCallback", dotNetRef, "incident-updated", "OnIncidentUpdated");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnIncidentUpdated(object data)
+    {
+        await LoadIncidents();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -261,6 +279,16 @@
     public void Dispose()
     {
         Navigation.LocationChanged -= OnLocationChanged;
+        
+        if (dotNetRef != null)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("unregisterSignalRCallback", dotNetRef, "incident-updated");
+            }
+            catch { }
+            dotNetRef.Dispose();
+        }
     }
 
     private void FilterIncidents()

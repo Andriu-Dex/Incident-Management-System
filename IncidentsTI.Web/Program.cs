@@ -10,6 +10,8 @@ using IncidentsTI.Infrastructure.Repositories;
 using IncidentsTI.Infrastructure.Reports;
 using IncidentsTI.Infrastructure.Services;
 using IncidentsTI.Web.Components;
+using IncidentsTI.Web.Hubs;
+using IncidentsTI.Web.Hubs.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -86,7 +88,7 @@ namespace IncidentsTI.Web
             
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
-            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<NotificationService>(); // Base service
             builder.Services.AddScoped<IReportService, DashboardReportService>();
 
             // Configure MediatR
@@ -96,6 +98,18 @@ namespace IncidentsTI.Web
             // Configure Blazored services
             builder.Services.AddBlazoredToast();
             builder.Services.AddBlazoredModal();
+
+            // Register real-time notification service
+            builder.Services.AddScoped<IRealTimeNotificationService, RealTimeNotificationService>();
+            
+            // Register INotificationService with real-time decorator
+            builder.Services.AddScoped<INotificationService>(sp =>
+            {
+                var baseService = sp.GetRequiredService<NotificationService>();
+                var realTimeService = sp.GetRequiredService<IRealTimeNotificationService>();
+                var logger = sp.GetRequiredService<ILogger<IncidentsTI.Web.Services.RealTimeNotificationDecorator>>();
+                return new IncidentsTI.Web.Services.RealTimeNotificationDecorator(baseService, realTimeService, logger);
+            });
 
             // Configure Circuit options to suppress authentication state errors during logout
             builder.Services.AddServerSideBlazor()
@@ -131,6 +145,9 @@ namespace IncidentsTI.Web
 
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
+
+            // SignalR Hub para notificaciones en tiempo real
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             // API endpoint for login (outside Blazor circuit)
             app.MapPost("/api/auth/login", async (

@@ -16,7 +16,9 @@
 @inject NavigationManager Navigation
 @inject IToastService ToastService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
+@implements IDisposable
 
 <PageTitle>Gestión de Incidentes - Sistema de Incidentes TI</PageTitle>
 
@@ -728,6 +730,7 @@
     private List<UserDto> technicians = new();
     private List<ServiceDto> services = new();
     private string? currentUserId;
+    private DotNetObjectReference<AdminIncidents>? dotNetRef;
     
     private string statusFilter = "";
     private string priorityFilter = "";
@@ -782,6 +785,44 @@
         
         await LoadData();
         await LoadServices();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerSignalRCallback", dotNetRef, "incident-updated", "OnIncidentUpdated");
+            await JSRuntime.InvokeVoidAsync("registerSignalRCallback", dotNetRef, "dashboard-refresh", "OnDashboardRefresh");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnIncidentUpdated(object data)
+    {
+        await LoadData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDashboardRefresh(object data)
+    {
+        await LoadData();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (dotNetRef != null)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("unregisterSignalRCallback", dotNetRef, "incident-updated");
+                _ = JSRuntime.InvokeVoidAsync("unregisterSignalRCallback", dotNetRef, "dashboard-refresh");
+            }
+            catch { }
+            dotNetRef.Dispose();
+        }
     }
 
     private async Task LoadServices()

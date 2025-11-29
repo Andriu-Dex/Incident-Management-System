@@ -7,6 +7,8 @@
 @inject IMediator Mediator
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
+@implements IDisposable
 
 <div class="relative">
     <!-- Notification Bell Button -->
@@ -125,6 +127,7 @@
     private List<NotificationDto> notifications = new();
     private string? currentUserId;
     private System.Timers.Timer? refreshTimer;
+    private DotNetObjectReference<NotificationBell>? dotNetRef;
 
     protected override async Task OnInitializedAsync()
     {
@@ -134,6 +137,22 @@
             await LoadUnreadCount();
             StartAutoRefresh();
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(currentUserId))
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerSignalRCallback", dotNetRef, "notification-count-updated", "OnNotificationCountUpdated");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnNotificationCountUpdated(object data)
+    {
+        await LoadUnreadCount();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadCurrentUser()
@@ -270,5 +289,15 @@
     {
         refreshTimer?.Stop();
         refreshTimer?.Dispose();
+        
+        if (dotNetRef != null)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("unregisterSignalRCallback", dotNetRef, "notification-count-updated");
+            }
+            catch { }
+            dotNetRef.Dispose();
+        }
     }
 }

@@ -15,6 +15,7 @@
 @inject NavigationManager Navigation
 @inject IToastService ToastService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 @implements IDisposable
 
@@ -618,6 +619,7 @@
     private List<IncidentListDto> incidents = new();
     private List<ServiceDto> services = new();
     private string? currentUserId;
+    private DotNetObjectReference<TechnicianDashboard>? dotNetRef;
     
     // Modal de detalle
     private bool showDetailModal = false;
@@ -668,6 +670,31 @@
         await LoadServices();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Registrar callback para actualizaciones en tiempo real
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerSignalRCallback", dotNetRef, "incident-updated", "OnIncidentUpdated");
+            await JSRuntime.InvokeVoidAsync("registerSignalRCallback", dotNetRef, "dashboard-refresh", "OnDashboardRefresh");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnIncidentUpdated(object data)
+    {
+        await LoadIncidents();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDashboardRefresh(object data)
+    {
+        await LoadIncidents();
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         if (e.Location.Contains("/technician/dashboard"))
@@ -700,6 +727,18 @@
     public void Dispose()
     {
         Navigation.LocationChanged -= OnLocationChanged;
+        
+        // Desregistrar callbacks de SignalR
+        if (dotNetRef != null)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("unregisterSignalRCallback", dotNetRef, "incident-updated");
+                _ = JSRuntime.InvokeVoidAsync("unregisterSignalRCallback", dotNetRef, "dashboard-refresh");
+            }
+            catch { }
+            dotNetRef.Dispose();
+        }
     }
 
     private async Task OpenDetailModal(int incidentId)
