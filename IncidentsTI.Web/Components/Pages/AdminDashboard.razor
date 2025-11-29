@@ -156,8 +156,8 @@
                 <h2 id="time-metrics-heading" class="sr-only">Métricas de tiempo</h2>
                 
                 <TimeMetricCard Title="Tiempo Promedio de Resolución"
-                                FormattedValue="@FormatHours(statistics.AverageResolutionTimeHours)"
-                                Unit="horas"
+                                FormattedValue="@FormatTimeValue(statistics.AverageResolutionTimeHours)"
+                                Unit="@GetTimeUnit(statistics.AverageResolutionTimeHours)"
                                 Description="Tiempo promedio desde apertura hasta resolución"
                                 Badge="Objetivo: 24h"
                                 Variant="blue"
@@ -172,8 +172,8 @@
                 </TimeMetricCard>
                 
                 <TimeMetricCard Title="Tiempo de Primera Respuesta"
-                                FormattedValue="@FormatHours(statistics.AverageFirstResponseTimeHours)"
-                                Unit="horas"
+                                FormattedValue="@FormatTimeValue(statistics.AverageFirstResponseTimeHours)"
+                                Unit="@GetTimeUnit(statistics.AverageFirstResponseTimeHours)"
                                 Description="Tiempo promedio hasta la primera respuesta"
                                 Badge="Objetivo: 4h"
                                 Variant="green"
@@ -704,6 +704,20 @@
         if (hours < 1) return $"{(hours * 60):F0}m";
         if (hours < 24) return $"{hours:F1}";
         return $"{(hours / 24):F1}d";
+    }
+
+    private string FormatTimeValue(double hours)
+    {
+        if (hours < 1) return $"{(hours * 60):F0}";
+        if (hours < 24) return $"{hours:F1}";
+        return $"{(hours / 24):F1}";
+    }
+
+    private string GetTimeUnit(double hours)
+    {
+        if (hours < 1) return "minutos";
+        if (hours < 24) return "horas";
+        return "días";
     }
 
     private string TruncateString(string str, int maxLength)

@@ -73,11 +73,23 @@
             {
                 <div class="mt-3 pt-3 border-t border-white/20">
                     <div class="flex items-center justify-between text-xs text-white/70 mb-1.5">
-                        <span>Meta: @TargetValue @Unit</span>
-                        <span class="font-semibold text-white">@GetProgressPercentage()%</span>
+                        <span>Meta: @FormatTarget()</span>
+                        @if (IsMetricMet())
+                        {
+                            <span class="font-semibold text-white flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Cumplido
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="font-semibold text-white">@GetProgressPercentage()% usado</span>
+                        }
                     </div>
                     <div class="w-full bg-white/20 rounded-full h-1.5 overflow-hidden">
-                        <div class="h-full bg-white rounded-full transition-all duration-700"
+                        <div class="h-full @GetProgressBarColor() rounded-full transition-all duration-700"
                              style="width: @Math.Min(GetProgressPercentage(), 100)%"
                              role="progressbar"
                              aria-valuenow="@GetProgressPercentage()"
@@ -120,8 +132,44 @@
         if (!CurrentValue.HasValue || !TargetValue.HasValue || TargetValue.Value == 0)
             return 0;
         
-        // Para métricas de tiempo, menor es mejor
-        var percentage = (TargetValue.Value / CurrentValue.Value) * 100;
+        // Para métricas de tiempo: muestra qué porcentaje del tiempo meta se está usando
+        // Ej: si meta es 24h y actual es 3h, estás usando 12.5% del tiempo permitido
+        var percentage = (CurrentValue.Value / TargetValue.Value) * 100;
         return (int)Math.Round(percentage);
+    }
+
+    private bool IsMetricMet()
+    {
+        if (!CurrentValue.HasValue || !TargetValue.HasValue)
+            return false;
+        
+        // La meta se cumple si el tiempo actual es menor o igual al objetivo
+        return CurrentValue.Value <= TargetValue.Value;
+    }
+
+    private string GetProgressBarColor()
+    {
+        if (!CurrentValue.HasValue || !TargetValue.HasValue)
+            return "bg-white";
+        
+        var percentage = (CurrentValue.Value / TargetValue.Value) * 100;
+        
+        // Verde si está bien, amarillo si se acerca, rojo si excede
+        return percentage switch
+        {
+            <= 75 => "bg-white", // Bien
+            <= 100 => "bg-yellow-300", // Cerca del límite
+            _ => "bg-red-400" // Excedido
+        };
+    }
+
+    private string FormatTarget()
+    {
+        if (!TargetValue.HasValue) return "";
+        
+        // La meta siempre viene en horas desde el padre
+        var hours = TargetValue.Value;
+        if (hours < 1) return $"{(hours * 60):F0} minutos";
+        return $"{hours:F0} horas";
     }
 }
