@@ -21,6 +21,11 @@ namespace IncidentsTI.Web
 {
     // DTO for login endpoint
     public record LoginRequest(string Email, string Password, bool RememberMe);
+    
+    // DTOs for password recovery endpoints
+    public record ForgotPasswordRequest(string Email);
+    public record ValidateTokenRequest(string Token);
+    public record ResetPasswordRequest(string Token, string NewPassword);
 
     public class Program
     {
@@ -77,6 +82,7 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<IIncidentEscalationRepository, IncidentEscalationRepository>();
             builder.Services.AddScoped<IKnowledgeArticleRepository, KnowledgeArticleRepository>();
             builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+            builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
             
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
@@ -171,6 +177,108 @@ namespace IncidentsTI.Web
             {
                 await signInManager.SignOutAsync();
                 return Results.Json(new { success = true, message = "Sesión cerrada exitosamente" });
+            });
+
+            // API endpoint for forgot password - Request password reset
+            app.MapPost("/api/auth/forgot-password", async (
+                ForgotPasswordRequest request,
+                IMediator mediator,
+                HttpContext httpContext) =>
+            {
+                try
+                {
+                    // Get base URL for reset link
+                    var baseUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+                    
+                    // Get client IP for audit
+                    var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString();
+
+                    var command = new IncidentsTI.Application.Commands.RequestPasswordResetCommand
+                    {
+                        Email = request.Email,
+                        BaseUrl = baseUrl,
+                        IpAddress = ipAddress
+                    };
+
+                    var result = await mediator.Send(command);
+
+                    return Results.Json(new 
+                    { 
+                        success = result.Success, 
+                        message = result.Message,
+                        resetLink = result.ResetLink // Only for development - remove in production
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new 
+                    { 
+                        success = false, 
+                        message = "Error al procesar la solicitud. Por favor, intente nuevamente." 
+                    });
+                }
+            });
+
+            // API endpoint for validate reset token
+            app.MapPost("/api/auth/validate-reset-token", async (
+                ValidateTokenRequest request,
+                IMediator mediator) =>
+            {
+                try
+                {
+                    var command = new IncidentsTI.Application.Commands.ValidateResetTokenCommand
+                    {
+                        Token = request.Token
+                    };
+
+                    var result = await mediator.Send(command);
+
+                    return Results.Json(new 
+                    { 
+                        isValid = result.IsValid, 
+                        maskedEmail = result.MaskedEmail,
+                        errorMessage = result.ErrorMessage
+                    });
+                }
+                catch (Exception)
+                {
+                    return Results.Json(new 
+                    { 
+                        isValid = false, 
+                        errorMessage = "Error al validar el enlace." 
+                    });
+                }
+            });
+
+            // API endpoint for reset password
+            app.MapPost("/api/auth/reset-password", async (
+                ResetPasswordRequest request,
+                IMediator mediator) =>
+            {
+                try
+                {
+                    var command = new IncidentsTI.Application.Commands.ResetPasswordCommand
+                    {
+                        Token = request.Token,
+                        NewPassword = request.NewPassword
+                    };
+
+                    var result = await mediator.Send(command);
+
+                    return Results.Json(new 
+                    { 
+                        success = result.Success, 
+                        message = result.Message
+                    });
+                }
+                catch (Exception)
+                {
+                    return Results.Json(new 
+                    { 
+                        success = false, 
+                        message = "Error al cambiar la contraseña. Por favor, intente nuevamente." 
+                    });
+                }
             });
 
             // API endpoint for dashboard PDF report generation

@@ -30,6 +30,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Notifications
     public DbSet<Notification> Notifications { get; set; }
+    
+    // Password Reset Tokens
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +61,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         // Configure Notification relationships
         ConfigureNotificationRelationships(modelBuilder);
+        
+        // Configure PasswordResetToken relationships
+        ConfigurePasswordResetTokenRelationships(modelBuilder);
 
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -329,5 +335,38 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Composite index for common queries
         modelBuilder.Entity<Notification>()
             .HasIndex(n => new { n.UserId, n.IsRead, n.IsActive });
+    }
+
+    private void ConfigurePasswordResetTokenRelationships(ModelBuilder modelBuilder)
+    {
+        // PasswordResetToken -> User
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Token should be unique
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.Token)
+            .IsUnique();
+
+        // Indexes for better query performance
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.UserId);
+
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.ExpiresAt);
+
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.IsUsed);
+
+        // Composite index for common validation queries
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(t => new { t.Token, t.IsUsed, t.ExpiresAt });
+
+        // Ignore the PlainToken property (not mapped to database)
+        modelBuilder.Entity<PasswordResetToken>()
+            .Ignore(t => t.PlainToken);
     }
 }
