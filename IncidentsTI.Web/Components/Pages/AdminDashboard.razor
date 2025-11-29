@@ -455,7 +455,7 @@
                             <span class="text-sm font-semibold text-emerald-600">@tech.ResolvedIncidents</span>
                         </td>
                         <td class="px-5 py-3.5 text-center">
-                            <span class="text-sm text-gray-700">@FormatHours(tech.AverageResolutionTimeHours)h</span>
+                            <span class="text-sm text-gray-700">@FormatHours(tech.AverageResolutionTimeHours)</span>
                         </td>
                         <td class="px-5 py-3.5 text-center">
                             <div class="flex items-center justify-center gap-1.5">
@@ -647,7 +647,7 @@
             {
                 var statusLabels = statistics.IncidentsByStatus.Select(s => GetStatusDisplay(s.Status)).ToArray();
                 var statusData = statistics.IncidentsByStatus.Select(s => s.Count).ToArray();
-                var statusColors = new[] { "#3B82F6", "#F59E0B", "#10B981", "#6B7280", "#EF4444" };
+                var statusColors = statistics.IncidentsByStatus.Select(s => GetStatusChartColor(s.Status)).ToArray();
                 
                 await JSRuntime.InvokeVoidAsync("renderDoughnutChart", "statusChart", statusLabels, statusData, statusColors);
             }
@@ -657,7 +657,7 @@
             {
                 var priorityLabels = statistics.IncidentsByPriority.Select(p => GetPriorityDisplay(p.Priority)).ToArray();
                 var priorityData = statistics.IncidentsByPriority.Select(p => p.Count).ToArray();
-                var priorityColors = new[] { "#6B7280", "#3B82F6", "#F59E0B", "#EF4444" };
+                var priorityColors = statistics.IncidentsByPriority.Select(p => GetPriorityChartColor(p.Priority)).ToArray();
                 
                 await JSRuntime.InvokeVoidAsync("renderDoughnutChart", "priorityChart", priorityLabels, priorityData, priorityColors);
             }
@@ -665,7 +665,7 @@
             // Type Chart
             if (statistics.IncidentsByType?.Any() == true)
             {
-                var typeLabels = statistics.IncidentsByType.Select(t => GetCategoryDisplay(t.Type)).ToArray();
+                var typeLabels = statistics.IncidentsByType.Select(t => GetIncidentTypeDisplay(t.Type)).ToArray();
                 var typeData = statistics.IncidentsByType.Select(t => t.Count).ToArray();
                 var typeColors = new[] { "#8B5CF6", "#EC4899", "#06B6D4", "#84CC16", "#F97316" };
                 
@@ -765,6 +765,14 @@
         _ => category
     };
 
+    private string GetIncidentTypeDisplay(string type) => type switch
+    {
+        "Failure" => "Fallo",
+        "Query" => "Consulta",
+        "Request" => "Solicitud",
+        _ => type
+    };
+
     private string GetStatusColorClass(string status) => status switch
     {
         "Open" => "bg-blue-500",
@@ -775,6 +783,16 @@
         _ => "bg-gray-400"
     };
 
+    private string GetStatusChartColor(string status) => status switch
+    {
+        "Open" => "#3B82F6",      // blue-500
+        "InProgress" => "#F59E0B", // amber-500
+        "Resolved" => "#10B981",   // emerald-500
+        "Closed" => "#9CA3AF",     // gray-400
+        "Escalated" => "#EF4444",  // red-500
+        _ => "#9CA3AF"
+    };
+
     private string GetPriorityColorClass(string priority) => priority switch
     {
         "Low" => "bg-gray-400",
@@ -782,6 +800,15 @@
         "High" => "bg-amber-500",
         "Critical" => "bg-red-500",
         _ => "bg-gray-400"
+    };
+
+    private string GetPriorityChartColor(string priority) => priority switch
+    {
+        "Low" => "#9CA3AF",       // gray-400
+        "Medium" => "#3B82F6",    // blue-500
+        "High" => "#F59E0B",      // amber-500
+        "Critical" => "#EF4444",  // red-500
+        _ => "#9CA3AF"
     };
 
     private string GetOpenCountClass(int count) => count switch
