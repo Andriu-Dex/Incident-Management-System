@@ -1,21 +1,36 @@
 ﻿@inherits LayoutComponentBase
 @using IncidentsTI.Web.Components.Shared
+@inject IJSRuntime JS
 
 <div class="flex h-full bg-gray-100 overflow-hidden">
+    <!-- Mobile Overlay -->
+    @if (isSidebarOpen)
+    {
+        <div class="fixed inset-0 bg-black/50 z-40 lg:hidden" @onclick="CloseSidebar"></div>
+    }
+    
     <!-- Sidebar -->
-    <div class="w-64 bg-blue-600 shadow-lg flex-shrink-0 overflow-y-auto">
-        <NavMenu />
+    <div class="@GetSidebarClasses()">
+        <NavMenu OnNavigate="CloseSidebar" />
     </div>
 
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <!-- Top Header Bar -->
-        <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 flex-shrink-0">
+        <header class="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-3 flex-shrink-0">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <h1 class="text-lg font-semibold text-gray-800">Sistema de Gestión de Incidentes</h1>
+                    <!-- Hamburger Menu Button (Mobile) -->
+                    <button @onclick="ToggleSidebar" 
+                            class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                            aria-label="Abrir menú">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                    <h1 class="text-base sm:text-lg font-semibold text-gray-800 truncate">Sistema de Gestión de Incidentes</h1>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 sm:gap-4">
                     <AuthorizeView>
                         <Authorized>
                             <NotificationBell />
@@ -41,3 +56,28 @@
     <a href="" class="underline ml-2">Recargar</a>
     <a class="dismiss ml-4 cursor-pointer">✕</a>
 </div>
+
+@code {
+    private bool isSidebarOpen = false;
+
+    private void ToggleSidebar()
+    {
+        isSidebarOpen = !isSidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        isSidebarOpen = false;
+    }
+
+    private string GetSidebarClasses()
+    {
+        var baseClasses = "w-64 bg-blue-600 shadow-lg flex-shrink-0 overflow-y-auto transition-transform duration-300 ease-in-out";
+        var mobileClasses = isSidebarOpen 
+            ? "fixed inset-y-0 left-0 z-50 transform translate-x-0" 
+            : "fixed inset-y-0 left-0 z-50 transform -translate-x-full";
+        var desktopClasses = "lg:relative lg:translate-x-0";
+        
+        return $"{baseClasses} {mobileClasses} {desktopClasses}";
+    }
+}

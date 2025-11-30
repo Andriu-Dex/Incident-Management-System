@@ -8,10 +8,10 @@
 
 <PageTitle>Iniciar Sesión</PageTitle>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <div class="mb-8">
-            <h2 class="text-3xl font-extrabold text-gray-900 text-center">
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8 max-w-md w-full">
+        <div class="mb-6 sm:mb-8">
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 text-center">
                 Sistema de Gestión de Incidentes TI
             </h2>
             <p class="mt-2 text-center text-sm text-gray-600">
@@ -21,7 +21,7 @@
         
         @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded text-sm">
                 @errorMessage
             </div>
         }
@@ -31,18 +31,18 @@
             
             <div class="space-y-4">
                 <div>
-                    <label for="email" class="form-label">Correo Electrónico</label>
+                    <label for="email" class="form-label text-sm sm:text-base">Correo Electrónico</label>
                     <InputText id="email" @bind-Value="loginModel.Email" 
-                               class="form-input" 
+                               class="form-input text-sm sm:text-base" 
                                placeholder="usuario@uta.edu.ec" />
-                    <ValidationMessage For="@(() => loginModel.Email)" class="text-error text-sm mt-1" />
+                    <ValidationMessage For="@(() => loginModel.Email)" class="text-error text-xs sm:text-sm mt-1" />
                 </div>
 
                 <div>
-                    <label for="password" class="form-label">Contraseña</label>
+                    <label for="password" class="form-label text-sm sm:text-base">Contraseña</label>
                     <div class="relative">
                         <InputText id="password" type="@(showPassword ? "text" : "password")" @bind-Value="loginModel.Password" 
-                                   class="form-input pr-10" 
+                                   class="form-input pr-10 text-sm sm:text-base" 
                                    placeholder="••••••••" />
                         <button type="button" @onclick="TogglePasswordVisibility" 
                                 class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
@@ -64,11 +64,11 @@
                             }
                         </button>
                     </div>
-                    <ValidationMessage For="@(() => loginModel.Password)" class="text-error text-sm mt-1" />
+                    <ValidationMessage For="@(() => loginModel.Password)" class="text-error text-xs sm:text-sm mt-1" />
                 </div>
             </div>
 
-            <div class="flex items-center justify-between mt-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-4 gap-3 sm:gap-0">
                 <div class="flex items-center">
                     <InputCheckbox id="remember" @bind-Value="loginModel.RememberMe" 
                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -85,7 +85,7 @@
 
             <div class="mt-6">
                 <button type="submit" disabled="@isLoading" 
-                        class="btn btn-primary w-full">
+                        class="btn btn-primary w-full text-sm sm:text-base py-2.5 sm:py-3">
                     @if (isLoading)
                     {
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

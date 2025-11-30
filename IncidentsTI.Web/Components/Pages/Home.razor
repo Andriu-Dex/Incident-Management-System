@@ -15,30 +15,30 @@
 
 <PageTitle>Inicio - Sistema de Gestión de Incidentes TI</PageTitle>
 
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-8">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-6 lg:p-8">
     <div class="max-w-7xl mx-auto">
         <!-- Welcome Header -->
-        <div class="mb-8">
-            <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl shadow-lg">
-                            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-6 sm:mb-8">
+            <div class="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 border border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-lg">
+                            <svg class="w-8 h-8 sm:w-12 sm:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-blue-600 uppercase tracking-wide">Bienvenido/a</p>
-                            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">@userName</h1>
+                            <p class="text-xs sm:text-sm font-medium text-blue-600 uppercase tracking-wide">Bienvenido/a</p>
+                            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">@userName</h1>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                <span class="px-2 sm:px-3 py-0.5 sm:py-1 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium">
                                     @userRole
                                 </span>
                             </div>
                         </div>
                     </div>
-                    <div class="text-left md:text-right">
-                        <p class="text-gray-500 text-sm">Universidad Técnica de Ambato</p>
+                    <div class="text-left sm:text-right">
+                        <p class="text-gray-500 text-xs sm:text-sm">Universidad Técnica de Ambato</p>
                         <p class="text-gray-400 text-xs mt-1">Sistema de Gestión de Incidentes TI</p>
                     </div>
                 </div>
@@ -46,120 +46,120 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="bg-blue-100 p-2 rounded-lg">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+            <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div class="bg-blue-100 p-1.5 sm:p-2 rounded-lg">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
                         </svg>
                     </div>
-                    <div class="text-blue-600 text-sm font-semibold">Mis Incidentes</div>
+                    <div class="text-blue-600 text-xs sm:text-sm font-semibold">Mis Incidentes</div>
                 </div>
-                <div class="text-3xl font-bold text-gray-900">@totalIncidents</div>
-                <p class="text-gray-500 text-xs mt-1">Total reportados</p>
+                <div class="text-2xl sm:text-3xl font-bold text-gray-900">@totalIncidents</div>
+                <p class="text-gray-500 text-xs mt-1 hidden sm:block">Total reportados</p>
             </div>
-            <div class="bg-white rounded-xl p-6 border-2 border-green-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="bg-green-100 p-2 rounded-lg">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-green-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div class="bg-green-100 p-1.5 sm:p-2 rounded-lg">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <div class="text-green-600 text-sm font-semibold">Abiertos</div>
+                    <div class="text-green-600 text-xs sm:text-sm font-semibold">Abiertos</div>
                 </div>
-                <div class="text-3xl font-bold text-gray-900">@openIncidents</div>
-                <p class="text-gray-500 text-xs mt-1">Pendientes de atención</p>
+                <div class="text-2xl sm:text-3xl font-bold text-gray-900">@openIncidents</div>
+                <p class="text-gray-500 text-xs mt-1 hidden sm:block">Pendientes de atención</p>
             </div>
-            <div class="bg-white rounded-xl p-6 border-2 border-yellow-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="bg-yellow-100 p-2 rounded-lg">
-                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-yellow-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div class="bg-yellow-100 p-1.5 sm:p-2 rounded-lg">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                     </div>
-                    <div class="text-yellow-600 text-sm font-semibold">En Progreso</div>
+                    <div class="text-yellow-600 text-xs sm:text-sm font-semibold">En Progreso</div>
                 </div>
-                <div class="text-3xl font-bold text-gray-900">@inProgressIncidents</div>
-                <p class="text-gray-500 text-xs mt-1">Siendo atendidos</p>
+                <div class="text-2xl sm:text-3xl font-bold text-gray-900">@inProgressIncidents</div>
+                <p class="text-gray-500 text-xs mt-1 hidden sm:block">Siendo atendidos</p>
             </div>
-            <div class="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="bg-gray-100 p-2 rounded-lg">
-                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div class="bg-gray-100 p-1.5 sm:p-2 rounded-lg">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <div class="text-gray-600 text-sm font-semibold">Resueltos</div>
+                    <div class="text-gray-600 text-xs sm:text-sm font-semibold">Resueltos</div>
                 </div>
-                <div class="text-3xl font-bold text-gray-900">@resolvedIncidents</div>
-                <p class="text-gray-500 text-xs mt-1">Completados</p>
+                <div class="text-2xl sm:text-3xl font-bold text-gray-900">@resolvedIncidents</div>
+                <p class="text-gray-500 text-xs mt-1 hidden sm:block">Completados</p>
             </div>
         </div>
 
         <!-- Quick Actions -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <!-- Create Incident Card -->
-            <div @onclick="NavigateToCreateIncident" class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer group">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div @onclick="NavigateToCreateIncident" class="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer group">
+                <div class="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-2.5 sm:p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Reportar Incidente</h3>
-                        <p class="text-sm text-gray-500">Crear un nuevo ticket</p>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Reportar Incidente</h3>
+                        <p class="text-xs sm:text-sm text-gray-500">Crear un nuevo ticket</p>
                     </div>
                 </div>
-                <p class="text-gray-600 text-sm">Reporta problemas técnicos, fallas en sistemas o solicita asistencia del equipo de TI.</p>
-                <div class="mt-4 flex items-center text-blue-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                <p class="text-gray-600 text-xs sm:text-sm hidden sm:block">Reporta problemas técnicos, fallas en sistemas o solicita asistencia del equipo de TI.</p>
+                <div class="mt-3 sm:mt-4 flex items-center text-blue-600 font-semibold text-xs sm:text-sm group-hover:gap-2 transition-all">
                     <span>Crear ahora</span>
-                    <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
                 </div>
             </div>
 
             <!-- My Incidents Card -->
-            <div @onclick="NavigateToMyIncidents" class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg hover:border-green-300 transition-all duration-200 cursor-pointer group">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div @onclick="NavigateToMyIncidents" class="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 hover:shadow-lg hover:border-green-300 transition-all duration-200 cursor-pointer group">
+                <div class="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 p-2.5 sm:p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">Mis Incidentes</h3>
-                        <p class="text-sm text-gray-500">Ver todos mis tickets</p>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">Mis Incidentes</h3>
+                        <p class="text-xs sm:text-sm text-gray-500">Ver todos mis tickets</p>
                     </div>
                 </div>
-                <p class="text-gray-600 text-sm">Consulta el estado de tus incidentes reportados, revisa actualizaciones y da seguimiento.</p>
-                <div class="mt-4 flex items-center text-green-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                <p class="text-gray-600 text-xs sm:text-sm hidden sm:block">Consulta el estado de tus incidentes reportados, revisa actualizaciones y da seguimiento.</p>
+                <div class="mt-3 sm:mt-4 flex items-center text-green-600 font-semibold text-xs sm:text-sm group-hover:gap-2 transition-all">
                     <span>Ver incidentes</span>
-                    <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
                 </div>
             </div>
 
             <!-- Services Card -->
-            <div @onclick="NavigateToServices" class="bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg hover:border-purple-300 transition-all duration-200 cursor-pointer group">
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div @onclick="NavigateToServices" class="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 hover:shadow-lg hover:border-purple-300 transition-all duration-200 cursor-pointer group sm:col-span-2 lg:col-span-1">
+                <div class="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-2.5 sm:p-3 rounded-xl shadow-md group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-purple-600 transition-colors">Servicios TI</h3>
-                        <p class="text-sm text-gray-500">Catálogo de servicios</p>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-purple-600 transition-colors">Servicios TI</h3>
+                        <p class="text-xs sm:text-sm text-gray-500">Catálogo de servicios</p>
                     </div>
                 </div>
-                <p class="text-gray-600 text-sm">Explora los servicios de TI disponibles: red, correo, sistemas académicos y más.</p>
-                <div class="mt-4 flex items-center text-purple-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                <p class="text-gray-600 text-xs sm:text-sm hidden sm:block">Explora los servicios de TI disponibles: red, correo, sistemas académicos y más.</p>
+                <div class="mt-3 sm:mt-4 flex items-center text-purple-600 font-semibold text-xs sm:text-sm group-hover:gap-2 transition-all">
                     <span>Ver servicios</span>
-                    <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
                 </div>
@@ -170,16 +170,16 @@
         @if (recentIncidents.Any())
         {
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex items-center justify-between">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <h2 class="text-lg font-bold text-gray-900">Incidentes Recientes</h2>
+                        <h2 class="text-base sm:text-lg font-bold text-gray-900">Incidentes Recientes</h2>
                     </div>
-                    <button @onclick="NavigateToMyIncidents" class="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1">
+                    <button @onclick="NavigateToMyIncidents" class="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-semibold flex items-center gap-1">
                         Ver todos
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </button>
@@ -187,18 +187,18 @@
                 <div class="divide-y divide-gray-100">
                     @foreach (var incident in recentIncidents.Take(5))
                     {
-                        <div @onclick="() => NavigateToIncidentDetail(incident.Id)" class="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-4">
-                                    <span class="font-mono text-sm font-semibold text-blue-600">@incident.TicketNumber</span>
-                                    <span class="text-gray-900 font-medium">@incident.Title</span>
+                        <div @onclick="() => NavigateToIncidentDetail(incident.Id)" class="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50 cursor-pointer transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                    <span class="font-mono text-xs sm:text-sm font-semibold text-blue-600">@incident.TicketNumber</span>
+                                    <span class="text-gray-900 font-medium text-sm sm:text-base line-clamp-1">@incident.Title</span>
                                 </div>
-                                <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-2 sm:gap-3">
                                     <span class="@GetStatusBadgeClass(incident.Status) text-xs">@incident.StatusName</span>
                                     <span class="@GetPriorityBadgeClass(incident.Priority) text-xs">@incident.PriorityName</span>
                                 </div>
                             </div>
-                            <div class="mt-1 text-sm text-gray-500 flex items-center gap-4">
+                            <div class="mt-1 text-xs sm:text-sm text-gray-500 flex flex-wrap items-center gap-2 sm:gap-4">
                                 <span>@incident.ServiceName</span>
                                 <span>@incident.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                             </div>
@@ -210,14 +210,14 @@
         else
         {
             <!-- Empty State -->
-            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-12 text-center">
-                <svg class="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 sm:p-12 text-center">
+                <svg class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                 </svg>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">No tienes incidentes reportados</h3>
-                <p class="text-gray-500 mb-6">Comienza reportando tu primer incidente cuando necesites asistencia técnica.</p>
-                <button @onclick="NavigateToCreateIncident" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2">No tienes incidentes reportados</h3>
+                <p class="text-gray-500 mb-6 text-sm sm:text-base">Comienza reportando tu primer incidente cuando necesites asistencia técnica.</p>
+                <button @onclick="NavigateToCreateIncident" class="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center gap-2 text-sm sm:text-base">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Crear mi primer incidente
