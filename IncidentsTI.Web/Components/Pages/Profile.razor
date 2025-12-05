@@ -1,0 +1,471 @@
+@page "/profile"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using IncidentsTI.Domain.Entities
+@using IncidentsTI.Application.Common
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IToastService ToastService
+@rendermode InteractiveServer
+
+<PageTitle>Mi Perfil - Sistema de Incidentes</PageTitle>
+
+<div class="max-w-4xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Mi Perfil</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Gestiona tu información personal y preferencias</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex justify-center items-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    }
+    else if (user != null)
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Sidebar - Avatar y datos básicos -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+                    <!-- Avatar -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                            @GetInitials()
+                        </div>
+                        <h2 class="mt-4 text-xl font-semibold text-gray-900 dark:text-white">
+                            @user.FirstName @user.LastName
+                        </h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@user.Email</p>
+                        
+                        @if (!string.IsNullOrEmpty(userRole))
+                        {
+                            <span class="mt-2 px-3 py-1 text-xs font-medium rounded-full @GetRoleBadgeClass()">
+                                @GetRoleDisplayName()
+                            </span>
+                        }
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center text-gray-600 dark:text-gray-400">
+                                <i class="bi bi-calendar3 mr-3"></i>
+                                <span>Miembro desde @user.CreatedAt.ToString("MMMM yyyy")</span>
+                            </div>
+                            <div class="flex items-center @(user.IsActive ? "text-green-600" : "text-red-600")">
+                                <i class="bi @(user.IsActive ? "bi-check-circle-fill" : "bi-x-circle-fill") mr-3"></i>
+                                <span>@(user.IsActive ? "Cuenta activa" : "Cuenta inactiva")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Información Personal -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="bi bi-person-fill text-blue-500 mr-2"></i>
+                            Información Personal
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <EditForm Model="@profileModel" OnValidSubmit="SaveProfile" FormName="profileForm">
+                            <DataAnnotationsValidator />
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Nombre
+                                    </label>
+                                    <InputText @bind-Value="profileModel.FirstName" 
+                                               class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                    <ValidationMessage For="@(() => profileModel.FirstName)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Apellido
+                                    </label>
+                                    <InputText @bind-Value="profileModel.LastName" 
+                                               class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                    <ValidationMessage For="@(() => profileModel.LastName)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Correo Electrónico
+                                </label>
+                                <input type="email" value="@user.Email" readonly
+                                       class="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-100 dark:bg-slate-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+                                <p class="text-xs text-gray-500 mt-1">El correo electrónico no puede ser modificado</p>
+                            </div>
+
+                            <div class="mt-6 flex justify-end">
+                                <button type="submit" 
+                                        disabled="@isSaving"
+                                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                                    @if (isSaving)
+                                    {
+                                        <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                                    }
+                                    <i class="bi bi-check-lg mr-2"></i>
+                                    Guardar Cambios
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+
+                <!-- Preferencias de Notificaciones -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="bi bi-bell-fill text-amber-500 mr-2"></i>
+                            Preferencias de Notificaciones
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <!-- Email Notifications Toggle -->
+                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="bi bi-envelope-fill text-2xl text-blue-500"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h4 class="text-sm font-medium text-gray-900 dark:text-white">Notificaciones por Email</h4>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            Recibe emails cuando haya actualizaciones en tus incidentes
+                                        </p>
+                                    </div>
+                                </div>
+                                <button type="button" 
+                                        @onclick="ToggleEmailNotifications"
+                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 @(emailNotificationsEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-slate-600")">
+                                    <span class="sr-only">Toggle email notifications</span>
+                                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out @(emailNotificationsEnabled ? "translate-x-5" : "translate-x-0")"></span>
+                                </button>
+                            </div>
+
+                            <div class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                <p class="flex items-center">
+                                    <i class="bi bi-info-circle mr-2"></i>
+                                    Tipos de notificaciones que recibirás por email:
+                                </p>
+                                <ul class="mt-2 ml-6 space-y-1 list-disc">
+                                    <li>Confirmación de creación de incidentes</li>
+                                    <li>Cambios de estado en tus incidentes</li>
+                                    <li>Asignación de técnicos</li>
+                                    <li>Comentarios nuevos</li>
+                                    <li>Resolución y cierre de incidentes</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cambiar Contraseña -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="bi bi-shield-lock-fill text-green-500 mr-2"></i>
+                            Seguridad
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <EditForm Model="@passwordModel" OnValidSubmit="ChangePassword" FormName="passwordForm">
+                            <DataAnnotationsValidator />
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Contraseña Actual
+                                    </label>
+                                    <div class="relative">
+                                        <InputText type="@(showCurrentPassword ? "text" : "password")" 
+                                                   @bind-Value="passwordModel.CurrentPassword"
+                                                   class="w-full px-4 py-2 pr-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                        <button type="button" @onclick="() => showCurrentPassword = !showCurrentPassword"
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                            <i class="bi @(showCurrentPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                        </button>
+                                    </div>
+                                    <ValidationMessage For="@(() => passwordModel.CurrentPassword)" class="text-red-500 text-sm mt-1" />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Nueva Contraseña
+                                    </label>
+                                    <div class="relative">
+                                        <InputText type="@(showNewPassword ? "text" : "password")" 
+                                                   @bind-Value="passwordModel.NewPassword"
+                                                   class="w-full px-4 py-2 pr-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                        <button type="button" @onclick="() => showNewPassword = !showNewPassword"
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                            <i class="bi @(showNewPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                        </button>
+                                    </div>
+                                    <ValidationMessage For="@(() => passwordModel.NewPassword)" class="text-red-500 text-sm mt-1" />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Confirmar Nueva Contraseña
+                                    </label>
+                                    <div class="relative">
+                                        <InputText type="@(showConfirmPassword ? "text" : "password")" 
+                                                   @bind-Value="passwordModel.ConfirmPassword"
+                                                   class="w-full px-4 py-2 pr-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                                        <button type="button" @onclick="() => showConfirmPassword = !showConfirmPassword"
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                            <i class="bi @(showConfirmPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                        </button>
+                                    </div>
+                                    <ValidationMessage For="@(() => passwordModel.ConfirmPassword)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(passwordError))
+                            {
+                                <div class="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                                    <i class="bi bi-exclamation-triangle-fill mr-2"></i>
+                                    @passwordError
+                                </div>
+                            }
+
+                            <div class="mt-6 flex justify-end">
+                                <button type="submit" 
+                                        disabled="@isChangingPassword"
+                                        class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                                    @if (isChangingPassword)
+                                    {
+                                        <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                                    }
+                                    <i class="bi bi-shield-check mr-2"></i>
+                                    Cambiar Contraseña
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ApplicationUser? user;
+    private string? userRole;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isChangingPassword = false;
+    private bool emailNotificationsEnabled = true;
+
+    // Password visibility toggles
+    private bool showCurrentPassword = false;
+    private bool showNewPassword = false;
+    private bool showConfirmPassword = false;
+    private string? passwordError;
+
+    // Models
+    private ProfileModel profileModel = new();
+    private PasswordModel passwordModel = new();
+
+    private static readonly TimeZoneInfo EcuadorTimeZone = 
+        TimeZoneInfo.CreateCustomTimeZone("Ecuador", TimeSpan.FromHours(-5), "Ecuador Time", "Ecuador Time");
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserData();
+    }
+
+    private async Task LoadUserData()
+    {
+        isLoading = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userPrincipal = authState.User;
+
+            if (userPrincipal.Identity?.IsAuthenticated == true)
+            {
+                user = await UserManager.GetUserAsync(userPrincipal);
+                if (user != null)
+                {
+                    profileModel.FirstName = user.FirstName;
+                    profileModel.LastName = user.LastName;
+                    emailNotificationsEnabled = user.EmailNotificationsEnabled;
+
+                    var roles = await UserManager.GetRolesAsync(user);
+                    userRole = roles.FirstOrDefault();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error al cargar datos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        if (user == null) return;
+
+        isSaving = true;
+        try
+        {
+            user.FirstName = profileModel.FirstName;
+            user.LastName = profileModel.LastName;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            var result = await UserManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                ToastService.ShowSuccess("Perfil actualizado correctamente");
+            }
+            else
+            {
+                ToastService.ShowError("Error al actualizar el perfil");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleEmailNotifications()
+    {
+        if (user == null) return;
+
+        try
+        {
+            emailNotificationsEnabled = !emailNotificationsEnabled;
+            user.EmailNotificationsEnabled = emailNotificationsEnabled;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            var result = await UserManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                ToastService.ShowSuccess(emailNotificationsEnabled 
+                    ? "Notificaciones por email activadas" 
+                    : "Notificaciones por email desactivadas");
+            }
+            else
+            {
+                // Revertir si falla
+                emailNotificationsEnabled = !emailNotificationsEnabled;
+                ToastService.ShowError("Error al actualizar preferencias");
+            }
+        }
+        catch (Exception ex)
+        {
+            emailNotificationsEnabled = !emailNotificationsEnabled;
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        if (user == null) return;
+
+        passwordError = null;
+
+        if (passwordModel.NewPassword != passwordModel.ConfirmPassword)
+        {
+            passwordError = "Las contraseñas no coinciden";
+            return;
+        }
+
+        isChangingPassword = true;
+        try
+        {
+            var result = await UserManager.ChangePasswordAsync(user, passwordModel.CurrentPassword, passwordModel.NewPassword);
+            
+            if (result.Succeeded)
+            {
+                ToastService.ShowSuccess("Contraseña cambiada correctamente");
+                passwordModel = new PasswordModel(); // Limpiar formulario
+            }
+            else
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                passwordError = string.Join(". ", errors);
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private string GetInitials()
+    {
+        if (user == null) return "?";
+        var first = !string.IsNullOrEmpty(user.FirstName) ? user.FirstName[0].ToString().ToUpper() : "";
+        var last = !string.IsNullOrEmpty(user.LastName) ? user.LastName[0].ToString().ToUpper() : "";
+        return $"{first}{last}";
+    }
+
+    private string GetRoleBadgeClass() => userRole switch
+    {
+        "Administrator" => "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300",
+        "Technician" => "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
+        "Teacher" => "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+        "Student" => "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
+        _ => "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300"
+    };
+
+    private string GetRoleDisplayName() => userRole switch
+    {
+        "Administrator" => "Administrador",
+        "Technician" => "Técnico",
+        "Teacher" => "Docente",
+        "Student" => "Estudiante",
+        _ => userRole ?? "Usuario"
+    };
+
+    // Models
+    public class ProfileModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre es requerido")]
+        [System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El apellido es requerido")]
+        [System.ComponentModel.DataAnnotations.StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
+        public string LastName { get; set; } = string.Empty;
+    }
+
+    public class PasswordModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "La contraseña actual es requerida")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "La nueva contraseña es requerida")]
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "Mínimo 6 caracteres")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Confirma la nueva contraseña")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

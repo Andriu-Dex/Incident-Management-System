@@ -6,6 +6,7 @@ using IncidentsTI.Application.Queries;
 using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Interfaces;
 using IncidentsTI.Infrastructure.Data;
+using IncidentsTI.Infrastructure.Email;
 using IncidentsTI.Infrastructure.Repositories;
 using IncidentsTI.Infrastructure.Reports;
 using IncidentsTI.Infrastructure.Services;
@@ -91,6 +92,10 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<NotificationService>(); // Base service
             builder.Services.AddScoped<IReportService, DashboardReportService>();
 
+            // Configure Email Settings
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection(EmailSettings.SectionName));
+            builder.Services.AddScoped<IEmailService, EmailService>();
+
             // Configure MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(
                 typeof(IncidentsTI.Application.DTOs.Users.UserDto).Assembly));
@@ -102,13 +107,24 @@ namespace IncidentsTI.Web
             // Register real-time notification service
             builder.Services.AddScoped<IRealTimeNotificationService, RealTimeNotificationService>();
             
-            // Register INotificationService with real-time decorator
+            // Register INotificationService with decorators chain:
+            // NotificationService -> EmailNotificationDecorator -> RealTimeNotificationDecorator
             builder.Services.AddScoped<INotificationService>(sp =>
             {
+                // 1. Base notification service (in-app notifications)
                 var baseService = sp.GetRequiredService<NotificationService>();
+                
+                // 2. Add email notifications decorator
+                var emailService = sp.GetRequiredService<IEmailService>();
+                var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+                var incidentRepository = sp.GetRequiredService<IIncidentRepository>();
+                var emailLogger = sp.GetRequiredService<ILogger<EmailNotificationDecorator>>();
+                var withEmail = new EmailNotificationDecorator(baseService, emailService, userManager, incidentRepository, emailLogger);
+                
+                // 3. Add real-time notifications decorator (outermost)
                 var realTimeService = sp.GetRequiredService<IRealTimeNotificationService>();
-                var logger = sp.GetRequiredService<ILogger<IncidentsTI.Web.Services.RealTimeNotificationDecorator>>();
-                return new IncidentsTI.Web.Services.RealTimeNotificationDecorator(baseService, realTimeService, logger);
+                var rtLogger = sp.GetRequiredService<ILogger<IncidentsTI.Web.Services.RealTimeNotificationDecorator>>();
+                return new IncidentsTI.Web.Services.RealTimeNotificationDecorator(withEmail, realTimeService, rtLogger);
             });
 
             // Configure Circuit options to suppress authentication state errors during logout

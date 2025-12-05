@@ -13,5 +13,15 @@ public class ApplicationUser : IdentityUser
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    /// <summary>
+    /// Indica si el usuario desea recibir notificaciones por email
+    /// </summary>
+    public bool EmailNotificationsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Preferencia de tema del usuario (Light, Dark, Auto)
+    /// </summary>
+    public string ThemePreference { get; set; } = "Auto";
+
     // Navigation properties will be added as we develop other phases
 }

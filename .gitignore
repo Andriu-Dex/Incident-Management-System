@@ -5,6 +5,11 @@
 *.userosscache
 *.sln.docstates
 
+# Sensitive configuration files
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.Production.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
