@@ -46,4 +46,5 @@ public class Incident
     public ICollection<IncidentHistory> History { get; set; } = new List<IncidentHistory>();
     public ICollection<IncidentComment> Comments { get; set; } = new List<IncidentComment>();
     public ICollection<IncidentEscalation> Escalations { get; set; } = new List<IncidentEscalation>();
+    public ICollection<IncidentAttachment> Attachments { get; set; } = new List<IncidentAttachment>();
 }

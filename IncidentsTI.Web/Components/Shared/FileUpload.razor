@@ -1,0 +1,266 @@
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JSRuntime
+
+<div class="space-y-4">
+    <!-- Zona de Drag & Drop -->
+    <div class="@GetDropZoneClass()" 
+         @ondragenter="HandleDragEnter"
+         @ondragleave="HandleDragLeave"
+         @ondragover:preventDefault
+         @ondrop="HandleDrop"
+         @ondrop:preventDefault>
+        
+        <InputFile OnChange="HandleFileSelected" 
+                   multiple="@AllowMultiple" 
+                   accept="@AcceptedTypes"
+                   class="hidden" 
+                   id="@inputId" />
+        
+        <label for="@inputId" class="cursor-pointer flex flex-col items-center justify-center p-6">
+            @if (isUploading)
+            {
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-3"></div>
+                <p class="text-gray-600">Subiendo archivo...</p>
+            }
+            else
+            {
+                <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <p class="text-gray-600 mb-1">
+                    <span class="font-semibold text-blue-600">Haz clic para seleccionar</span> o arrastra archivos aquí
+                </p>
+                <p class="text-sm text-gray-500">
+                    @GetAllowedTypesText() • Máx. @MaxFileSizeMB MB por archivo
+                </p>
+                @if (MaxFiles > 1)
+                {
+                    <p class="text-sm text-gray-500">Máximo @MaxFiles archivos</p>
+                }
+            }
+        </label>
+    </div>
+
+    <!-- Lista de archivos pendientes -->
+    @if (PendingFiles.Any())
+    {
+        <div class="space-y-2">
+            <h4 class="font-medium text-gray-700">Archivos seleccionados (@PendingFiles.Count)</h4>
+            @foreach (var file in PendingFiles)
+            {
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div class="flex items-center space-x-3">
+                        @if (IsImageFile(file.ContentType))
+                        {
+                            @if (file.PreviewUrl != null)
+                            {
+                                <img src="@file.PreviewUrl" alt="Preview" class="w-12 h-12 object-cover rounded"/>
+                            }
+                            else
+                            {
+                                <div class="w-12 h-12 bg-blue-100 rounded flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                        }
+                        <div>
+                            <p class="font-medium text-gray-800 truncate max-w-xs">@file.Name</p>
+                            <p class="text-sm text-gray-500">@FormatFileSize(file.Size)</p>
+                        </div>
+                    </div>
+                    <button type="button" @onclick="() => RemovePendingFile(file)" 
+                            class="p-1 hover:bg-red-100 rounded-full transition">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Mensajes de error -->
+    @if (errorMessages.Any())
+    {
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+            @foreach (var error in errorMessages)
+            {
+                <p class="text-sm text-red-600">@error</p>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int MaxFileSizeMB { get; set; } = 5;
+    [Parameter] public int MaxFiles { get; set; } = 5;
+    [Parameter] public bool AllowMultiple { get; set; } = true;
+    [Parameter] public EventCallback<List<PendingFile>> OnFilesChanged { get; set; }
+
+    public List<PendingFile> PendingFiles { get; private set; } = new();
+    
+    private string inputId = $"file-input-{Guid.NewGuid():N}";
+    private bool isDragOver = false;
+    private bool isUploading = false;
+    private List<string> errorMessages = new();
+
+    private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "text/plain"
+    };
+
+    private string AcceptedTypes => ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt";
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        await ProcessFiles(e.GetMultipleFiles(MaxFiles));
+    }
+
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        isDragOver = false;
+        // Los archivos se procesan a través del InputFile
+    }
+
+    private void HandleDragEnter(DragEventArgs e)
+    {
+        isDragOver = true;
+    }
+
+    private void HandleDragLeave(DragEventArgs e)
+    {
+        isDragOver = false;
+    }
+
+    private async Task ProcessFiles(IReadOnlyList<IBrowserFile> files)
+    {
+        errorMessages.Clear();
+        isUploading = true;
+        StateHasChanged();
+
+        var maxSizeBytes = MaxFileSizeMB * 1024 * 1024;
+
+        foreach (var file in files)
+        {
+            // Verificar límite de archivos
+            if (PendingFiles.Count >= MaxFiles)
+            {
+                errorMessages.Add($"Solo se permiten {MaxFiles} archivos máximo.");
+                break;
+            }
+
+            // Verificar tipo de archivo
+            if (!AllowedContentTypes.Contains(file.ContentType))
+            {
+                errorMessages.Add($"'{file.Name}': Tipo de archivo no permitido.");
+                continue;
+            }
+
+            // Verificar tamaño
+            if (file.Size > maxSizeBytes)
+            {
+                errorMessages.Add($"'{file.Name}': Excede el tamaño máximo de {MaxFileSizeMB} MB.");
+                continue;
+            }
+
+            try
+            {
+                // Leer contenido del archivo
+                using var stream = file.OpenReadStream(maxSizeBytes);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var content = ms.ToArray();
+
+                var pendingFile = new PendingFile
+                {
+                    Name = file.Name,
+                    ContentType = file.ContentType,
+                    Size = file.Size,
+                    Content = content
+                };
+
+                // Generar preview para imágenes
+                if (IsImageFile(file.ContentType))
+                {
+                    pendingFile.PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(content)}";
+                }
+
+                PendingFiles.Add(pendingFile);
+            }
+            catch (Exception ex)
+            {
+                errorMessages.Add($"'{file.Name}': Error al procesar - {ex.Message}");
+            }
+        }
+
+        isUploading = false;
+        await OnFilesChanged.InvokeAsync(PendingFiles);
+        StateHasChanged();
+    }
+
+    private async Task RemovePendingFile(PendingFile file)
+    {
+        PendingFiles.Remove(file);
+        await OnFilesChanged.InvokeAsync(PendingFiles);
+    }
+
+    public void ClearFiles()
+    {
+        PendingFiles.Clear();
+        errorMessages.Clear();
+        StateHasChanged();
+    }
+
+    private string GetDropZoneClass()
+    {
+        var baseClass = "border-2 border-dashed rounded-lg transition-colors duration-200";
+        return isDragOver 
+            ? $"{baseClass} border-blue-500 bg-blue-50" 
+            : $"{baseClass} border-gray-300 hover:border-blue-400 hover:bg-gray-50";
+    }
+
+    private bool IsImageFile(string contentType)
+    {
+        return contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F1} MB";
+    }
+
+    private string GetAllowedTypesText()
+    {
+        return "Imágenes, PDF, Word, Excel, TXT";
+    }
+
+    public class PendingFile
+    {
+        public string Name { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public byte[] Content { get; set; } = Array.Empty<byte>();
+        public string? PreviewUrl { get; set; }
+    }
+}

@@ -33,6 +33,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     // Password Reset Tokens
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+    
+    // Attachments
+    public DbSet<IncidentAttachment> IncidentAttachments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -64,6 +67,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         
         // Configure PasswordResetToken relationships
         ConfigurePasswordResetTokenRelationships(modelBuilder);
+        
+        // Configure IncidentAttachment relationships
+        ConfigureIncidentAttachmentRelationships(modelBuilder);
 
         // Entity configurations will be added here as we develop each phase
         // modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
@@ -368,5 +374,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Ignore the PlainToken property (not mapped to database)
         modelBuilder.Entity<PasswordResetToken>()
             .Ignore(t => t.PlainToken);
+    }
+
+    private void ConfigureIncidentAttachmentRelationships(ModelBuilder modelBuilder)
+    {
+        // IncidentAttachment -> Incident
+        modelBuilder.Entity<IncidentAttachment>()
+            .HasOne(a => a.Incident)
+            .WithMany(i => i.Attachments)
+            .HasForeignKey(a => a.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // IncidentAttachment -> UploadedBy (User)
+        modelBuilder.Entity<IncidentAttachment>()
+            .HasOne(a => a.UploadedBy)
+            .WithMany()
+            .HasForeignKey(a => a.UploadedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Configure FileContent as VARBINARY(MAX)
+        modelBuilder.Entity<IncidentAttachment>()
+            .Property(a => a.FileContent)
+            .HasColumnType("VARBINARY(MAX)");
+
+        // Index for queries by incident
+        modelBuilder.Entity<IncidentAttachment>()
+            .HasIndex(a => a.IncidentId);
+
+        // Index for queries by uploader
+        modelBuilder.Entity<IncidentAttachment>()
+            .HasIndex(a => a.UploadedById);
     }
 }

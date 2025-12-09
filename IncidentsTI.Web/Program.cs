@@ -86,6 +86,7 @@ namespace IncidentsTI.Web
             builder.Services.AddScoped<IKnowledgeArticleRepository, KnowledgeArticleRepository>();
             builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
             builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+            builder.Services.AddScoped<IIncidentAttachmentRepository, IncidentAttachmentRepository>();
             
             // Register Application Services
             builder.Services.AddScoped<IIncidentHistoryService, IncidentHistoryService>();
@@ -403,6 +404,54 @@ namespace IncidentsTI.Web
                 catch (Exception ex)
                 {
                     return Results.Json(new { success = false, message = $"Error generando reporte Excel: {ex.Message}" }, statusCode: 500);
+                }
+            }).RequireAuthorization();
+
+            // API endpoint for attachment download
+            app.MapGet("/api/attachments/{id:int}/download", async (
+                int id,
+                IMediator mediator) =>
+            {
+                try
+                {
+                    var query = new GetAttachmentContentQuery { AttachmentId = id };
+                    var result = await mediator.Send(query);
+
+                    if (result == null)
+                        return Results.NotFound(new { message = "Archivo no encontrado" });
+
+                    return Results.File(result.Value.Content, result.Value.ContentType, result.Value.FileName);
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { success = false, message = $"Error descargando archivo: {ex.Message}" }, statusCode: 500);
+                }
+            }).RequireAuthorization();
+
+            // API endpoint for attachment thumbnail (for images)
+            app.MapGet("/api/attachments/{id:int}/thumbnail", async (
+                int id,
+                IMediator mediator) =>
+            {
+                try
+                {
+                    var query = new GetAttachmentContentQuery { AttachmentId = id };
+                    var result = await mediator.Send(query);
+
+                    if (result == null)
+                        return Results.NotFound();
+
+                    // For thumbnails, just return the original image (could add resizing later)
+                    if (result.Value.ContentType.StartsWith("image/"))
+                    {
+                        return Results.File(result.Value.Content, result.Value.ContentType);
+                    }
+
+                    return Results.NotFound();
+                }
+                catch
+                {
+                    return Results.NotFound();
                 }
             }).RequireAuthorization();
 

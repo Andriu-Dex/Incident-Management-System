@@ -5,6 +5,7 @@
 @using IncidentsTI.Application.DTOs.Knowledge
 @using IncidentsTI.Application.Queries
 @using IncidentsTI.Domain.Enums
+@using IncidentsTI.Web.Components.Shared
 @using MediatR
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
@@ -315,6 +316,74 @@ else
                         }
                     </div>
                 </div>
+            </div>
+
+            <!-- Attachments Section (Accordion) -->
+            <div class="mt-8 bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                <!-- Accordion Header -->
+                <button @onclick="() => isAttachmentsExpanded = !isAttachmentsExpanded" 
+                        class="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <h2 class="text-lg font-bold text-gray-900">Archivos Adjuntos</h2>
+                            <span class="text-sm text-gray-500">@attachments.Count archivo(s)</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500 transition-transform duration-200 @(isAttachmentsExpanded ? "rotate-180" : "")" 
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                
+                <!-- Accordion Content -->
+                @if (isAttachmentsExpanded)
+                {
+                    <div class="p-6 border-t border-gray-100">
+                        <!-- Upload new files (only if not resolved) -->
+                        @if (incident.Status != IncidentStatus.Resolved && incident.Status != IncidentStatus.Closed)
+                        {
+                            <div class="mb-6">
+                                <h4 class="text-sm font-semibold text-gray-700 mb-3">Agregar archivos</h4>
+                                <FileUpload @ref="fileUploadRef" 
+                                            MaxFileSizeMB="5" 
+                                            MaxFiles="@(5 - attachments.Count)"
+                                            OnFilesChanged="HandleNewFilesChanged" />
+                                @if (pendingFiles.Any())
+                                {
+                                    <button @onclick="UploadPendingFiles" 
+                                            disabled="@isUploadingFiles"
+                                            class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                                        @if (isUploadingFiles)
+                                        {
+                                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            <span>Subiendo...</span>
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                            </svg>
+                                            <span>Subir archivos</span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        }
+                        
+                        <!-- Existing attachments gallery -->
+                        <AttachmentGallery Attachments="@attachments" 
+                                           CanDelete="@CanDeleteAttachments()"
+                                           OnDeleteRequested="HandleDeleteAttachment" />
+                    </div>
+                }
             </div>
 
             <!-- Comments Section (Accordion) -->
@@ -689,6 +758,7 @@ else
     private IncidentDto? incident;
     private List<IncidentHistoryDto> history = new();
     private List<IncidentCommentDto> comments = new();
+    private List<AttachmentDto> attachments = new();
     private string? currentUserId;
     private bool isStaff = false;
     private string newComment = "";
@@ -708,6 +778,12 @@ else
     // Acordeones
     private bool isCommentsExpanded = false;
     private bool isHistoryExpanded = false;
+    private bool isAttachmentsExpanded = false;
+    
+    // Attachments
+    private FileUpload? fileUploadRef;
+    private List<FileUpload.PendingFile> pendingFiles = new();
+    private bool isUploadingFiles = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -718,6 +794,7 @@ else
         await LoadIncident();
         await LoadHistory();
         await LoadComments();
+        await LoadAttachments();
         
         // Solo staff necesita ver artículos vinculados y sugerencias
         if (isStaff && incident != null)
@@ -743,6 +820,90 @@ else
     {
         var query = new GetIncidentCommentsQuery(Id, isStaff);
         comments = (await Mediator.Send(query)).ToList();
+    }
+
+    private async Task LoadAttachments()
+    {
+        var query = new GetIncidentAttachmentsQuery { IncidentId = Id };
+        attachments = (await Mediator.Send(query)).ToList();
+    }
+
+    private void HandleNewFilesChanged(List<FileUpload.PendingFile> files)
+    {
+        pendingFiles = files;
+    }
+
+    private async Task UploadPendingFiles()
+    {
+        if (!pendingFiles.Any() || string.IsNullOrEmpty(currentUserId))
+            return;
+
+        isUploadingFiles = true;
+
+        try
+        {
+            foreach (var file in pendingFiles)
+            {
+                try
+                {
+                    var command = new UploadAttachmentCommand
+                    {
+                        IncidentId = Id,
+                        FileName = file.Name,
+                        ContentType = file.ContentType,
+                        FileContent = file.Content,
+                        UploadedById = currentUserId
+                    };
+                    await Mediator.Send(command);
+                }
+                catch (Exception ex)
+                {
+                    ToastService.ShowWarning($"Error subiendo {file.Name}: {ex.Message}");
+                }
+            }
+
+            fileUploadRef?.ClearFiles();
+            pendingFiles.Clear();
+            await LoadAttachments();
+            ToastService.ShowSuccess("Archivos subidos correctamente");
+        }
+        finally
+        {
+            isUploadingFiles = false;
+        }
+    }
+
+    private bool CanDeleteAttachments()
+    {
+        return isStaff || incident?.UserId == currentUserId;
+    }
+
+    private async Task HandleDeleteAttachment(int attachmentId)
+    {
+        try
+        {
+            var command = new DeleteAttachmentCommand
+            {
+                AttachmentId = attachmentId,
+                UserId = currentUserId ?? "",
+                IsAdmin = isStaff
+            };
+
+            var result = await Mediator.Send(command);
+            if (result)
+            {
+                await LoadAttachments();
+                ToastService.ShowSuccess("Archivo eliminado");
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            ToastService.ShowError("No tiene permiso para eliminar este archivo");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error eliminando archivo: {ex.Message}");
+        }
     }
 
     private async Task AddComment()
