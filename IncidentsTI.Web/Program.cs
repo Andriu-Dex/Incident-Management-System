@@ -477,6 +477,9 @@ namespace IncidentsTI.Web
                 // Seed users (roles are seeded via OnModelCreating)
                 await DatabaseSeeder.SeedUsersAsync(userManager);
                 
+                // Seed Pasantes (for existing databases that don't have them)
+                await DatabaseSeeder.SeedPasantesAsync(userManager);
+                
                 // Seed services
                 await DatabaseSeeder.SeedServicesAsync(context);
 

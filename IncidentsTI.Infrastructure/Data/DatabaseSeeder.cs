@@ -155,6 +155,49 @@ namespace IncidentsTI.Infrastructure.Data
             }
         }
 
+        /// <summary>
+        /// Seeds Pasante users if they don't exist. Called separately to add new users to existing databases.
+        /// </summary>
+        public static async Task SeedPasantesAsync(UserManager<ApplicationUser> userManager)
+        {
+            var pasantes = new List<(ApplicationUser User, string Password)>
+            {
+                (new ApplicationUser
+                {
+                    FirstName = "Miguel",
+                    LastName = "Pasante",
+                    UserName = "miguel.pasante@uta.edu.ec",
+                    Email = "miguel.pasante@uta.edu.ec",
+                    EmailConfirmed = true,
+                    IsActive = true
+                }, "Intern123!"),
+
+                (new ApplicationUser
+                {
+                    FirstName = "Camila",
+                    LastName = "Pasante",
+                    UserName = "camila.pasante@uta.edu.ec",
+                    Email = "camila.pasante@uta.edu.ec",
+                    EmailConfirmed = true,
+                    IsActive = true
+                }, "Intern123!")
+            };
+
+            foreach (var (user, password) in pasantes)
+            {
+                // Check if user already exists
+                var existingUser = await userManager.FindByEmailAsync(user.Email!);
+                if (existingUser == null)
+                {
+                    var result = await userManager.CreateAsync(user, password);
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(user, UserRole.Pasante.ToString());
+                    }
+                }
+            }
+        }
+
         public static async Task SeedServicesAsync(ApplicationDbContext context)
         {
             // Check if services already exist

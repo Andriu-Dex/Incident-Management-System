@@ -49,7 +49,7 @@ Esta fase implementa el sistema completo de autenticación y gestión de usuario
 
 ### Usuarios de Prueba
 
-La aplicación viene con 10 usuarios pre-cargados para pruebas:
+La aplicación viene con 12 usuarios pre-cargados para pruebas:
 
 #### Administradores (2)
 ```
@@ -101,6 +101,17 @@ Nombre: Diego Estudiante
 Email: valentina.estudiante@uta.edu.ec
 Password: Student123!
 Nombre: Valentina Estudiante
+```
+
+#### Pasantes (2)
+```
+Email: miguel.pasante@uta.edu.ec
+Password: Intern123!
+Nombre: Miguel Pasante
+
+Email: camila.pasante@uta.edu.ec
+Password: Intern123!
+Nombre: Camila Pasante
 ```
 
 ### Tecnologías Utilizadas

@@ -147,18 +147,23 @@ Ejemplo: INC-2025-0001, INC-2025-0002, ...
 ```
 
 ### Sistema de Permisos
-| Acción | Usuario | Técnico | Admin |
-|--------|---------|---------|-------|
-| Crear incidente | ✅ | ✅ | ✅ |
-| Ver sus incidentes | ✅ | ✅ | ✅ |
-| Ver incidentes asignados | ❌ | ✅ | ✅ |
-| Ver todos los incidentes | ❌ | ❌ | ✅ |
-| Cambiar estado | ❌ | ✅ | ✅ |
-| Modificar servicio | ❌ | ✅ | ✅ |
-| Modificar tipo | ❌ | ✅ | ✅ |
-| Modificar prioridad | ❌ | ✅ | ✅ |
-| Asignar técnico | ❌ | ❌ | ✅ |
-| Eliminar incidente | ❌ | ❌ | ✅ (Super Admin) |
+| Acción | Usuario | Pasante | Técnico | Admin |
+|--------|---------|---------|---------|-------|
+| Crear incidente | ✅ | ✅ | ✅ | ✅ |
+| Ver sus incidentes | ✅ | ✅ | ✅ | ✅ |
+| Reclamar incidentes | ❌ | ✅ | ✅ | ✅ |
+| Ver incidentes disponibles | ❌ | ✅ | ✅ | ✅ |
+| Ver incidentes asignados | ❌ | ✅ | ✅ | ✅ |
+| Ver todos los incidentes | ❌ | ❌ | ❌ | ✅ |
+| Cambiar estado | ❌ | ✅* | ✅* | ✅ |
+| Modificar servicio | ❌ | ✅* | ✅* | ✅ |
+| Modificar tipo | ❌ | ✅* | ✅* | ✅ |
+| Modificar prioridad | ❌ | ✅* | ✅* | ✅ |
+| Resolver incidente | ❌ | ✅* | ✅* | ✅ |
+| Asignar técnico | ❌ | ❌ | ❌ | ✅ |
+| Eliminar incidente | ❌ | ❌ | ❌ | ✅ (Super Admin) |
+
+*Solo para incidentes reclamados/asignados a ellos mismos
 
 ### Notificaciones Toast
 Sistema de notificaciones funcional usando `Blazored.Toast`:
@@ -196,16 +201,25 @@ Toggle especial en la gestión de incidentes (Admin):
 7. Sistema genera número de ticket
 8. Usuario es redirigido a "Mis Incidentes"
 
-### Flujo: Técnico Atiende Incidente
+### Flujo: Técnico/Pasante Reclama Incidente (First-Come-First-Serve)
+1. Técnico o Pasante accede a Dashboard o "Incidentes Disponibles"
+2. Ve incidentes sin asignar (estado Open)
+3. Hace clic en "Reclamar" en el incidente deseado
+4. Sistema asigna el incidente automáticamente al técnico que lo reclamó
+5. Estado cambia a "En Progreso"
+6. Solo ese técnico puede resolver el incidente
+7. Toast de confirmación: "¡Incidente reclamado exitosamente!"
+
+### Flujo: Técnico/Pasante Atiende Incidente Reclamado
 1. Técnico accede a Dashboard
-2. Ve incidentes asignados con estadísticas
+2. Ve incidentes reclamados/asignados con estadísticas
 3. Cambia estado directamente desde dropdown
 4. O hace clic en "Ver" para abrir modal
 5. Modifica servicio/tipo/prioridad si es necesario
 6. Guarda cambios
 7. Toast de confirmación aparece
 
-### Flujo: Admin Asigna Incidente
+### Flujo: Admin Asigna Incidente (Override)
 1. Admin accede a Gestión de Incidentes
 2. Ve todos los incidentes con filtros
 3. Selecciona técnico en dropdown de asignación
@@ -288,6 +302,7 @@ dotnet run
 ```
 Admin:    admin@uta.edu.ec / Admin123!
 Técnico:  carlos.tech@uta.edu.ec / Tech123!
+Pasante:  miguel.pasante@uta.edu.ec / Intern123!
 Docente:  pedro.docente@uta.edu.ec / Teacher123!
 ```
 
