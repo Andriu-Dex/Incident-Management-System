@@ -88,13 +88,15 @@ ALTER TABLE Incidents ADD CurrentEscalationLevelId INT NULL FOREIGN KEY;
 
 ---
 
-## 📊 Niveles de Escalamiento (Seed Data)
+## 📊 Niveles de Escalamiento (Actualizados en Fase 13)
 
-| Nivel | Nombre | Orden | Descripción |
-|-------|--------|-------|-------------|
-| 1 | Nivel 1 - Mesa de Ayuda | 1 | Soporte inicial y clasificación |
-| 2 | Nivel 2 - Especialista | 2 | Técnicos especializados |
-| 3 | Nivel 3 - Proveedor Externo | 3 | Escalamiento a proveedores |
+| Nivel | Nombre | Orden | Rol Asociado | Descripción |
+|-------|--------|-------|--------------|-------------|
+| 1 | Nivel 1 - Soporte Inicial | 1 | Pasante | Primer nivel de atención para incidentes básicos |
+| 2 | Nivel 2 - Soporte Técnico | 2 | Técnico | Técnicos especializados para problemas complejos |
+| 3 | Nivel 3 - Soporte Avanzado | 3 | Administrador | Casos que requieren permisos elevados o coordinación externa |
+
+> **Nota:** En la [Fase 13](13-ESCALATION_LEVELS_BY_ROLE.md) se implementó la asignación automática de niveles según el rol del usuario y el sistema de liberación de incidentes al escalar.
 
 ---
 
@@ -163,3 +165,15 @@ private string FormatLocalDateTime(DateTime utcDateTime)
 - Blazor Server con InteractiveServer render mode
 - Tailwind CSS para estilos
 - Patrón Repository para acceso a datos
+
+---
+
+## 🔗 Mejoras Posteriores
+
+Esta fase fue mejorada en la **[Fase 13 - Escalamiento por Niveles de Usuario](13-ESCALATION_LEVELS_BY_ROLE.md)** con:
+
+- Asignación automática de nivel según el rol del usuario al reclamar incidentes
+- Filtrado de incidentes disponibles según el nivel del usuario
+- Liberación de incidentes al escalar (sistema first-come-first-serve)
+- Seguimiento en solo lectura para el usuario que escaló
+- Nuevo campo `EscalatedByUserId` para rastrear quién escaló

@@ -33,7 +33,7 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 
 ### 🔐 Autenticación y Roles
 - Sistema de login seguro con ASP.NET Core Identity
-- 5 roles: Administrador, Técnico, Pasante, Docente, Estudiante
+- 6 roles: Administrador, Técnico, Pasante, Docente, Estudiante, Administrativo
 - Gestión de usuarios (crear, activar/desactivar)
 - Protección de rutas basada en roles
 
@@ -64,8 +64,12 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 
 ![alt text](img/trazabilidad.png)
 
-### ⬆️ Sistema de Escalamiento
-- 3 niveles de escalamiento
+### ⬆️ Sistema de Escalamiento por Niveles
+- 3 niveles de soporte: Inicial (Pasantes), Técnico, Avanzado (Admins)
+- Asignación automática de nivel al reclamar incidentes
+- Liberación de incidentes al escalar (first-come-first-serve)
+- Filtrado de incidentes según nivel del usuario
+- Seguimiento en solo lectura para quien escaló
 - Registro de motivos y notas
 - Notificaciones automáticas
 
@@ -288,17 +292,22 @@ La documentación completa del proyecto se encuentra en la carpeta `/docs`:
 
 | Documento | Descripción |
 |-----------|-------------|
-| [Requirements.md](docs/Requirements.md) | Requisitos funcionales y no funcionales |
-| [DEVELOPMENT_PHASES.md](docs/DEVELOPMENT_PHASES.md) | Plan de desarrollo por fases |
-| [PHASE1_AUTHENTICACION.md](docs/PHASE1_AUTHENTICACION.md) | Fase 1 - Autenticación |
-| [PHASE2_SERVICE_CATALOG.md](docs/PHASE2_SERVICE_CATALOG.md) | Fase 2 - Catálogo de Servicios |
-| [PHASE3_INCIDENT_MANAGEMENT.md](docs/PHASE3_INCIDENT_MANAGEMENT.md) | Fase 3 - Gestión de Incidentes |
-| [PHASE4_TRACEABILITY.md](docs/PHASE4_TRACEABILITY.md) | Fase 4 - Trazabilidad |
-| [PHASE5_ESCALATION.md](docs/PHASE5_ESCALATION.md) | Fase 5 - Escalamiento |
-| [PHASE6_KNOWLEDGE_BASE.md](docs/PHASE6_KNOWLEDGE_BASE.md) | Fase 6 - Base de Conocimiento |
-| [PHASE7_NOTIFICATIONS.md](docs/PHASE7_NOTIFICATIONS.md) | Fase 7 - Notificaciones |
-| [PHASE8_STATISTICS.md](docs/PHASE8_Statistics.md) | Fase 8 - Estadísticas y Reportes |
-| [PHASE9_UI_UX.md](docs/PHASE9_UI_UX.md) | Fase 9 - Mejoras UI/UX |
+| [REQUIREMENTS.md](docs/REQUIREMENTS.md) | Requisitos funcionales y no funcionales |
+| [0-DEVELOPMENT_PHASES.md](docs/0-DEVELOPMENT_PHASES.md) | Plan de desarrollo por fases |
+| [1-PHASE1_AUTHENTICACION.md](docs/1-PHASE1_AUTHENTICACION.md) | Fase 1 - Autenticación |
+| [2-PHASE2_SERVICE_CATALOG.md](docs/2-PHASE2_SERVICE_CATALOG.md) | Fase 2 - Catálogo de Servicios |
+| [3-PHASE3_INCIDENT_MANAGEMENT.md](docs/3-PHASE3_INCIDENT_MANAGEMENT.md) | Fase 3 - Gestión de Incidentes |
+| [4-PHASE4_TRACEABILITY.md](docs/4-PHASE4_TRACEABILITY.md) | Fase 4 - Trazabilidad |
+| [5-PHASE5_ESCALATION.md](docs/5-PHASE5_ESCALATION.md) | Fase 5 - Escalamiento |
+| [6-PHASE6_KNOWLEDGE_BASE.md](docs/6-PHASE6_KNOWLEDGE_BASE.md) | Fase 6 - Base de Conocimiento |
+| [7-PHASE7_NOTIFICATIONS.md](docs/7-PHASE7_NOTIFICATIONS.md) | Fase 7 - Notificaciones In-App |
+| [8-PHASE8_STATISTICS.md](docs/8-PHASE8_STATISTICS.md) | Fase 8 - Estadísticas y Reportes |
+| [9-PHASE9_UI_UX.md](docs/9-PHASE9_UI_UX.md) | Fase 9 - Mejoras UI/UX |
+| [10-RECOVERY_PASSWORD.md](docs/10-RECOVERY_PASSWORD.md) | Fase 10 - Recuperación de Contraseña |
+| [11-ATTACHMENTS.md](docs/11-ATTACHMENTS.md) | Fase 11 - Adjuntos en Incidentes |
+| [11-SIGNALR_REALTIME.md](docs/11-SIGNALR_REALTIME.md) | Fase 11b - Notificaciones en Tiempo Real (SignalR) |
+| [12-EMAIL_NOTIFICATIONS.md](docs/12-EMAIL_NOTIFICATIONS.md) | Fase 12 - Notificaciones por Email |
+| [13-ESCALATION_LEVELS_BY_ROLE.md](docs/13-ESCALATION_LEVELS_BY_ROLE.md) | Fase 13 - Escalamiento por Niveles de Usuario |
 
 ---
 
