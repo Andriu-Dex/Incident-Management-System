@@ -33,7 +33,7 @@ El proyecto fue diseñado siguiendo principios de **ISO 9241** (ergonomía), **D
 
 ### 🔐 Autenticación y Roles
 - Sistema de login seguro con ASP.NET Core Identity
-- 4 roles: Administrador, Técnico, Docente, Estudiante
+- 5 roles: Administrador, Técnico, Pasante, Docente, Estudiante
 - Gestión de usuarios (crear, activar/desactivar)
 - Protección de rutas basada en roles
 
@@ -273,6 +273,12 @@ El sistema incluye usuarios precargados para pruebas:
 | sofia.estudiante@uta.edu.ec | Student123! |
 | diego.estudiante@uta.edu.ec | Student123! |
 | valentina.estudiante@uta.edu.ec | Student123! |
+
+### Pasantes
+| Email | Contraseña |
+|-------|------------|
+| miguel.pasante@uta.edu.ec | Intern123! |
+| camila.pasante@uta.edu.ec | Intern123! |
 
 ---
 

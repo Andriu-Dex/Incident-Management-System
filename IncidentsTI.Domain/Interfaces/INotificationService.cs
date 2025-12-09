@@ -54,6 +54,11 @@ public interface INotificationService
     Task NotifyArticleLinkedAsync(Incident incident, KnowledgeArticle article);
     
     /// <summary>
+    /// Notifica cuando un técnico/pasante reclama un incidente (sistema first-come-first-serve)
+    /// </summary>
+    Task NotifyIncidentClaimedAsync(Incident incident, string claimedByUserId);
+    
+    /// <summary>
     /// Envía una notificación personalizada a un usuario
     /// </summary>
     Task SendNotificationAsync(string userId, string title, string message, NotificationType type, int? relatedEntityId = null, string? actionUrl = null);

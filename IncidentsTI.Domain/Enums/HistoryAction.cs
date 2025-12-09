@@ -58,5 +58,10 @@ public enum HistoryAction
     /// <summary>
     /// Incidente resuelto con documentación de solución
     /// </summary>
-    Resolved = 10
+    Resolved = 10,
+    
+    /// <summary>
+    /// Incidente reclamado por un técnico/pasante (sistema first-come-first-serve)
+    /// </summary>
+    Claimed = 11
 }

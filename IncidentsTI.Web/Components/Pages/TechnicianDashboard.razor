@@ -9,7 +9,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@attribute [Authorize(Roles = "Technician,Administrator")]
+@attribute [Authorize(Roles = "Technician,Administrator,Pasante")]
 @attribute [StreamRendering(false)]
 @inject IMediator Mediator
 @inject NavigationManager Navigation
@@ -36,7 +36,7 @@
         </div>
 
         <!-- Stats -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
             <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-blue-200 shadow-sm">
                 <div class="text-blue-600 text-xs sm:text-sm font-semibold mb-1">Asignados</div>
                 <div class="text-2xl sm:text-3xl font-bold text-gray-900">@incidents.Count()</div>
@@ -52,6 +52,10 @@
             <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-green-200 shadow-sm">
                 <div class="text-green-600 text-xs sm:text-sm font-semibold mb-1">Resueltos</div>
                 <div class="text-2xl sm:text-3xl font-bold text-gray-900">@incidents.Count(i => i.Status == IncidentStatus.Resolved || i.Status == IncidentStatus.Closed)</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 sm:p-6 border-2 border-emerald-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow" @onclick="() => showAvailableSection = true">
+                <div class="text-emerald-600 text-xs sm:text-sm font-semibold mb-1">Disponibles</div>
+                <div class="text-2xl sm:text-3xl font-bold text-gray-900">@availableIncidents.Count()</div>
             </div>
         </div>
 
@@ -173,6 +177,159 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                     </svg>
                     <p class="text-gray-500 text-base sm:text-lg font-medium">No tienes incidentes asignados</p>
+                </div>
+            }
+        </div>
+
+        <!-- Sección de Incidentes Disponibles para Reclamar -->
+        <div class="mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900">Incidentes Disponibles</h2>
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                        @availableIncidents.Count()
+                    </span>
+                </div>
+                <button @onclick="() => showAvailableSection = !showAvailableSection" 
+                        class="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5 transition-transform @(showAvailableSection ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            @if (showAvailableSection)
+            {
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    @if (availableIncidents.Any())
+                    {
+                        <!-- Desktop Table -->
+                        <div class="hidden lg:block">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gradient-to-r from-emerald-50 to-teal-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Ticket</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Título</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Servicio</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Prioridad</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Creado</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @foreach (var incident in availableIncidents.Take(10))
+                                    {
+                                        <tr class="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-all duration-200">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="font-mono text-sm font-semibold text-emerald-600">@incident.TicketNumber</span>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900 max-w-xs truncate">@incident.Title</div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                                @incident.ServiceName
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="@GetPriorityBadgeClass(incident.Priority)">
+                                                    @incident.PriorityName
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                @FormatLocalDateTime(incident.CreatedAt)
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <button @onclick="() => ClaimIncident(incident.Id)" 
+                                                        disabled="@(isClaimingIncident && claimingIncidentId == incident.Id)"
+                                                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed font-semibold text-sm inline-flex items-center gap-2 transition-colors">
+                                                    @if (isClaimingIncident && claimingIncidentId == incident.Id)
+                                                    {
+                                                        <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        <span>Reclamando...</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                                        </svg>
+                                                        <span>Reclamar</span>
+                                                    }
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mobile Cards -->
+                        <div class="lg:hidden divide-y divide-gray-200">
+                            @foreach (var incident in availableIncidents.Take(10))
+                            {
+                                <div class="p-4 hover:bg-gray-50">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div>
+                                            <span class="font-mono text-sm font-semibold text-emerald-600">@incident.TicketNumber</span>
+                                            <h3 class="text-sm font-medium text-gray-900 mt-1">@incident.Title</h3>
+                                            <p class="text-xs text-gray-500">@incident.ServiceName</p>
+                                        </div>
+                                        <span class="@GetPriorityBadgeClass(incident.Priority) text-xs">
+                                            @incident.PriorityName
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                                        <span>@FormatLocalDateTime(incident.CreatedAt)</span>
+                                    </div>
+                                    <button @onclick="() => ClaimIncident(incident.Id)" 
+                                            disabled="@(isClaimingIncident && claimingIncidentId == incident.Id)"
+                                            class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed font-semibold text-sm inline-flex items-center justify-center gap-2 transition-colors">
+                                        @if (isClaimingIncident && claimingIncidentId == incident.Id)
+                                        {
+                                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Reclamando...</span>
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                            </svg>
+                                            <span>Reclamar</span>
+                                        }
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        @if (availableIncidents.Count() > 10)
+                        {
+                            <div class="p-4 bg-gray-50 border-t border-gray-200 text-center">
+                                <a href="/available-incidents" class="text-emerald-600 hover:text-emerald-800 font-semibold inline-flex items-center gap-2">
+                                    Ver todos los @availableIncidents.Count() incidentes disponibles
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-8 sm:p-12 text-center">
+                            <svg class="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-gray-500 text-base sm:text-lg font-medium">¡Todos los incidentes están atendidos!</p>
+                            <p class="text-gray-400 text-sm mt-2">No hay incidentes disponibles para reclamar</p>
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -660,9 +817,15 @@
 
 @code {
     private List<IncidentListDto> incidents = new();
+    private List<IncidentDto> availableIncidents = new();
     private List<ServiceDto> services = new();
     private string? currentUserId;
     private DotNetObjectReference<TechnicianDashboard>? dotNetRef;
+    
+    // Incidentes disponibles para reclamar
+    private bool showAvailableSection = true;
+    private bool isClaimingIncident = false;
+    private int claimingIncidentId = 0;
     
     // Modal de detalle
     private bool showDetailModal = false;
@@ -710,6 +873,7 @@
         
         Navigation.LocationChanged += OnLocationChanged;
         await LoadIncidents();
+        await LoadAvailableIncidents();
         await LoadServices();
     }
 
@@ -728,6 +892,7 @@
     public async Task OnIncidentUpdated(object data)
     {
         await LoadIncidents();
+        await LoadAvailableIncidents();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -735,6 +900,7 @@
     public async Task OnDashboardRefresh(object data)
     {
         await LoadIncidents();
+        await LoadAvailableIncidents();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -743,6 +909,7 @@
         if (e.Location.Contains("/technician/dashboard"))
         {
             await LoadIncidents();
+            await LoadAvailableIncidents();
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -759,6 +926,53 @@
         var query = new GetAssignedIncidentsQuery { AssignedToId = currentUserId };
         incidents = (await Mediator.Send(query)).ToList();
         Console.WriteLine($"TechnicianDashboard - Incidentes encontrados: {incidents.Count}");
+    }
+
+    private async Task LoadAvailableIncidents()
+    {
+        var query = new GetAvailableIncidentsQuery();
+        availableIncidents = (await Mediator.Send(query)).ToList();
+        Console.WriteLine($"TechnicianDashboard - Incidentes disponibles: {availableIncidents.Count}");
+    }
+
+    private async Task ClaimIncident(int incidentId)
+    {
+        if (string.IsNullOrEmpty(currentUserId) || isClaimingIncident) return;
+
+        try
+        {
+            isClaimingIncident = true;
+            claimingIncidentId = incidentId;
+            StateHasChanged();
+
+            var command = new ClaimIncidentCommand
+            {
+                IncidentId = incidentId,
+                ClaimedByUserId = currentUserId
+            };
+
+            var result = await Mediator.Send(command);
+
+            if (result.Success)
+            {
+                ToastService.ShowSuccess("¡Incidente reclamado exitosamente!");
+                await LoadIncidents();
+                await LoadAvailableIncidents();
+            }
+            else
+            {
+                ToastService.ShowError(result.ErrorMessage ?? "No se pudo reclamar el incidente.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error al reclamar: {ex.Message}");
+        }
+        finally
+        {
+            isClaimingIncident = false;
+            claimingIncidentId = 0;
+        }
     }
 
     private async Task LoadServices()
@@ -991,6 +1205,7 @@
             HistoryAction.CommentAdded => "bg-cyan-500",
             HistoryAction.Escalated => "bg-red-500",
             HistoryAction.DetailsUpdated => "bg-amber-500",
+            HistoryAction.Claimed => "bg-emerald-500",
             _ => "bg-gray-400"
         };
     }
@@ -1009,6 +1224,7 @@
             HistoryAction.CommentAdded => "text-cyan-600",
             HistoryAction.Escalated => "text-red-600",
             HistoryAction.DetailsUpdated => "text-amber-600",
+            HistoryAction.Claimed => "text-emerald-600",
             _ => "text-gray-600"
         };
     }
@@ -1027,6 +1243,7 @@
             HistoryAction.CommentAdded => "Comentario Agregado",
             HistoryAction.Escalated => "Escalado",
             HistoryAction.DetailsUpdated => "Detalles Actualizados",
+            HistoryAction.Claimed => "Reclamado",
             _ => "Acción"
         };
     }

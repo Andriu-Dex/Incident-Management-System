@@ -3,6 +3,7 @@ using IncidentsTI.Domain.Entities;
 using IncidentsTI.Domain.Enums;
 using IncidentsTI.Domain.Interfaces;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 
 namespace IncidentsTI.Application.Handlers;
 
@@ -14,15 +15,18 @@ public class ResolveIncidentCommandHandler : IRequestHandler<ResolveIncidentComm
     private readonly IIncidentRepository _incidentRepository;
     private readonly IKnowledgeArticleRepository _articleRepository;
     private readonly INotificationService _notificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public ResolveIncidentCommandHandler(
         IIncidentRepository incidentRepository,
         IKnowledgeArticleRepository articleRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        UserManager<ApplicationUser> userManager)
     {
         _incidentRepository = incidentRepository;
         _articleRepository = articleRepository;
         _notificationService = notificationService;
+        _userManager = userManager;
     }
 
     public async Task<bool> Handle(ResolveIncidentCommand request, CancellationToken cancellationToken)
@@ -30,6 +34,27 @@ public class ResolveIncidentCommandHandler : IRequestHandler<ResolveIncidentComm
         var incident = await _incidentRepository.GetByIdAsync(request.IncidentId);
         if (incident == null)
             return false;
+
+        // *** VALIDACIÓN DE PERMISOS: Solo el técnico asignado puede resolver ***
+        if (!string.IsNullOrEmpty(incident.AssignedToId) && incident.AssignedToId != request.UserId)
+        {
+            // Verificar si es Admin con permiso SuperAdmin
+            if (!request.SuperAdminOverride)
+            {
+                var user = await _userManager.FindByIdAsync(request.UserId);
+                if (user == null)
+                    return false;
+                    
+                var isAdmin = await _userManager.IsInRoleAsync(user, "Administrator");
+                if (!isAdmin)
+                {
+                    // No tiene permiso para resolver este incidente
+                    return false;
+                }
+                // Si es Admin pero no tiene SuperAdminOverride, tampoco puede
+                return false;
+            }
+        }
 
         // Si se vincula un artículo, crear el link
         if (request.LinkedArticleId.HasValue)

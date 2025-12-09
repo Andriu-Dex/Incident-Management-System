@@ -9,5 +9,6 @@ public enum UserRole
     Teacher = 2,
     Administrative = 3,
     Technician = 4,
-    Administrator = 5
+    Administrator = 5,
+    Pasante = 6
 }

@@ -217,6 +217,27 @@ public class EmailNotificationDecorator : INotificationService
         // No enviamos email para artículos vinculados (es una acción menor)
     }
 
+    public async Task NotifyIncidentClaimedAsync(Incident incident, string claimedByUserId)
+    {
+        await _innerService.NotifyIncidentClaimedAsync(incident, claimedByUserId);
+
+        try
+        {
+            var claimer = await _userManager.FindByIdAsync(claimedByUserId);
+            var creator = await _userManager.FindByIdAsync(incident.UserId);
+
+            // Enviar email al creador del incidente
+            if (creator != null && claimer != null)
+            {
+                await _emailService.SendIncidentAssignedEmailAsync(incident, creator, claimer);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending incident claimed email for incident {IncidentId}", incident.Id);
+        }
+    }
+
     public Task SendNotificationAsync(string userId, string title, string message, NotificationType type, int? relatedEntityId = null, string? actionUrl = null)
     {
         return _innerService.SendNotificationAsync(userId, title, message, type, relatedEntityId, actionUrl);

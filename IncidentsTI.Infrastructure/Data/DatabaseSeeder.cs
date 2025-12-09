@@ -120,7 +120,28 @@ namespace IncidentsTI.Infrastructure.Data
                     Email = "valentina.estudiante@uta.edu.ec",
                     EmailConfirmed = true,
                     IsActive = true
-                }, "Student123!", UserRole.Student)
+                }, "Student123!", UserRole.Student),
+
+                // Pasantes (Interns)
+                (new ApplicationUser
+                {
+                    FirstName = "Miguel",
+                    LastName = "Pasante",
+                    UserName = "miguel.pasante@uta.edu.ec",
+                    Email = "miguel.pasante@uta.edu.ec",
+                    EmailConfirmed = true,
+                    IsActive = true
+                }, "Intern123!", UserRole.Pasante),
+
+                (new ApplicationUser
+                {
+                    FirstName = "Camila",
+                    LastName = "Pasante",
+                    UserName = "camila.pasante@uta.edu.ec",
+                    Email = "camila.pasante@uta.edu.ec",
+                    EmailConfirmed = true,
+                    IsActive = true
+                }, "Intern123!", UserRole.Pasante)
             };
 
             foreach (var (user, password, role) in users)

@@ -198,6 +198,37 @@ public class RealTimeNotificationDecorator : INotificationService
         // No requiere notificación en tiempo real
     }
 
+    public async Task NotifyIncidentClaimedAsync(Incident incident, string claimedByUserId)
+    {
+        await _inner.NotifyIncidentClaimedAsync(incident, claimedByUserId);
+
+        try
+        {
+            // Notificar al creador que alguien tomó su incidente
+            await _realTimeService.NotifyUserAsync(
+                incident.UserId,
+                "👍 Incidente Reclamado",
+                $"Alguien está trabajando en {incident.TicketNumber}",
+                "/my-incidents");
+
+            // Notificar a administradores
+            await _realTimeService.NotifyGroupAsync(
+                "Admins",
+                "👤 Incidente Reclamado",
+                $"{incident.TicketNumber} ha sido reclamado",
+                "/admin/incidents");
+
+            // Actualizar dashboards para que otros técnicos/pasantes vean que ya no está disponible
+            await _realTimeService.SendIncidentUpdateAsync(incident.Id, "claimed");
+            await _realTimeService.SendDashboardRefreshAsync("Technicians");
+            await _realTimeService.SendDashboardRefreshAsync("Pasantes");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error en notificación tiempo real para incidente reclamado");
+        }
+    }
+
     public Task SendNotificationAsync(string userId, string title, string message, NotificationType type, int? relatedEntityId = null, string? actionUrl = null)
         => _inner.SendNotificationAsync(userId, title, message, type, relatedEntityId, actionUrl);
 

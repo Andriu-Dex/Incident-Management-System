@@ -16,6 +16,7 @@ public interface IIncidentHistoryService
     Task RecordServiceChange(int incidentId, string userId, string oldServiceName, string newServiceName);
     Task RecordAssignment(int incidentId, string userId, string? oldAssigneeName, string newAssigneeName);
     Task RecordEscalationAsync(int incidentId, string userId, string fromLevelName, string toLevelName, string reason);
+    Task RecordClaim(int incidentId, string userId, string claimerName);
 }
 
 public class IncidentHistoryService : IIncidentHistoryService
@@ -126,6 +127,21 @@ public class IncidentHistoryService : IIncidentHistoryService
             OldValue = fromLevelName,
             NewValue = toLevelName,
             Description = reason,
+            Timestamp = DateTime.UtcNow
+        };
+
+        await _historyRepository.AddAsync(history);
+    }
+
+    public async Task RecordClaim(int incidentId, string userId, string claimerName)
+    {
+        var history = new IncidentHistory
+        {
+            IncidentId = incidentId,
+            UserId = userId,
+            Action = HistoryAction.Claimed,
+            NewValue = claimerName,
+            Description = $"Incidente reclamado por {claimerName}",
             Timestamp = DateTime.UtcNow
         };
 

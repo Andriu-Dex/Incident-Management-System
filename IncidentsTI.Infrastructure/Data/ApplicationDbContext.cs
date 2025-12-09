@@ -235,7 +235,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new IdentityRole { Id = "2", Name = "Teacher", NormalizedName = "TEACHER" },
             new IdentityRole { Id = "3", Name = "Administrative", NormalizedName = "ADMINISTRATIVE" },
             new IdentityRole { Id = "4", Name = "Technician", NormalizedName = "TECHNICIAN" },
-            new IdentityRole { Id = "5", Name = "Administrator", NormalizedName = "ADMINISTRATOR" }
+            new IdentityRole { Id = "5", Name = "Administrator", NormalizedName = "ADMINISTRATOR" },
+            new IdentityRole { Id = "6", Name = "Pasante", NormalizedName = "PASANTE" }
         );
     }
 

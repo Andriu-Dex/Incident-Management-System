@@ -324,6 +324,37 @@ public class NotificationService : INotificationService
         }
     }
 
+    public async Task NotifyIncidentClaimedAsync(Incident incident, string claimedByUserId)
+    {
+        try
+        {
+            var claimer = await _userManager.FindByIdAsync(claimedByUserId);
+            var claimerName = claimer != null ? $"{claimer.FirstName} {claimer.LastName}" : "Un técnico";
+
+            // Notificar al creador del incidente
+            await SendNotificationAsync(
+                incident.UserId,
+                "Incidente Reclamado",
+                $"¡Buenas noticias! {claimerName} ha tomado tu incidente {incident.TicketNumber} y está trabajando en la solución.",
+                NotificationType.IncidentAssigned,
+                incident.Id,
+                $"/incidents/{incident.Id}");
+
+            // Notificar a los administradores
+            await SendNotificationToRoleAsync(
+                "Administrator",
+                "Incidente Reclamado",
+                $"{claimerName} ha reclamado el incidente {incident.TicketNumber}: {incident.Title}",
+                NotificationType.IncidentAssigned,
+                incident.Id,
+                $"/admin/incidents");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al enviar notificación de incidente reclamado {IncidentId}", incident.Id);
+        }
+    }
+
     public async Task SendNotificationAsync(string userId, string title, string message, NotificationType type, int? relatedEntityId = null, string? actionUrl = null)
     {
         try
