@@ -1,17 +1,13 @@
 ﻿@inherits LayoutComponentBase
 @using IncidentsTI.Web.Components.Shared
-@inject IJSRuntime JS
 
 <div class="flex h-full bg-gray-100 overflow-hidden">
     <!-- Mobile Overlay -->
-    @if (isSidebarOpen)
-    {
-        <div class="fixed inset-0 bg-black/50 z-40 lg:hidden" @onclick="CloseSidebar"></div>
-    }
-    
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+
     <!-- Sidebar -->
-    <div class="@GetSidebarClasses()">
-        <NavMenu OnNavigate="CloseSidebar" />
+    <div id="sidebar" class="w-64 bg-blue-600 shadow-lg flex-shrink-0 overflow-y-auto transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:relative lg:translate-x-0">
+        <NavMenu />
     </div>
 
     <!-- Main Content Area -->
@@ -21,9 +17,10 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <!-- Hamburger Menu Button (Mobile) -->
-                    <button @onclick="ToggleSidebar" 
+                    <button onclick="toggleSidebar()" 
                             class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            aria-label="Abrir menú">
+                            aria-label="Abrir menú"
+                            type="button">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
@@ -47,6 +44,36 @@
     </div>
 </div>
 
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            overlay.classList.add('hidden');
+        }
+    }
+    
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        sidebar.classList.add('-translate-x-full');
+        sidebar.classList.remove('translate-x-0');
+        overlay.classList.add('hidden');
+    }
+    
+    // Make it available globally
+    window.closeSidebar = closeSidebar;
+    window.toggleSidebar = toggleSidebar;
+</script>
+
 <script src="/js/auth.js"></script>
 
 <ToastContainer />
@@ -56,28 +83,3 @@
     <a href="" class="underline ml-2">Recargar</a>
     <a class="dismiss ml-4 cursor-pointer">✕</a>
 </div>
-
-@code {
-    private bool isSidebarOpen = false;
-
-    private void ToggleSidebar()
-    {
-        isSidebarOpen = !isSidebarOpen;
-    }
-
-    private void CloseSidebar()
-    {
-        isSidebarOpen = false;
-    }
-
-    private string GetSidebarClasses()
-    {
-        var baseClasses = "w-64 bg-blue-600 shadow-lg flex-shrink-0 overflow-y-auto transition-transform duration-300 ease-in-out";
-        var mobileClasses = isSidebarOpen 
-            ? "fixed inset-y-0 left-0 z-50 transform translate-x-0" 
-            : "fixed inset-y-0 left-0 z-50 transform -translate-x-full";
-        var desktopClasses = "lg:relative lg:translate-x-0";
-        
-        return $"{baseClasses} {mobileClasses} {desktopClasses}";
-    }
-}
