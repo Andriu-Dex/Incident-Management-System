@@ -107,6 +107,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
+        // Incident -> User (EscalatedBy) - quien escaló el incidente
+        // Usamos NoAction para evitar ciclos de cascade paths en SQL Server
+        modelBuilder.Entity<Incident>()
+            .HasOne(i => i.EscalatedByUser)
+            .WithMany()
+            .HasForeignKey(i => i.EscalatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false);
+
         // Index for better query performance
         modelBuilder.Entity<Incident>()
             .HasIndex(i => i.TicketNumber)

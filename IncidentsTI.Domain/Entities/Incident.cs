@@ -30,6 +30,10 @@ public class Incident
     public int? CurrentEscalationLevelId { get; set; }
     public EscalationLevel? CurrentEscalationLevel { get; set; }
     
+    // Usuario que escaló el incidente (para seguimiento en solo lectura)
+    public string? EscalatedByUserId { get; set; }
+    public ApplicationUser? EscalatedByUser { get; set; }
+    
     // Datos de resolución
     public string? ResolutionDescription { get; set; }
     public string? RootCause { get; set; }

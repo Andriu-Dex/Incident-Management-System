@@ -7,6 +7,11 @@ using MediatR;
 
 namespace IncidentsTI.Application.Handlers;
 
+/// <summary>
+/// Handler para escalar incidentes a un nivel superior.
+/// Al escalar, el incidente se LIBERA y queda disponible para que
+/// personal del nivel superior lo reclame.
+/// </summary>
 public class EscalateIncidentCommandHandler : IRequestHandler<EscalateIncidentCommand, bool>
 {
     private readonly IIncidentRepository _incidentRepository;
@@ -31,26 +36,31 @@ public class EscalateIncidentCommandHandler : IRequestHandler<EscalateIncidentCo
 
     public async Task<bool> Handle(EscalateIncidentCommand request, CancellationToken cancellationToken)
     {
-        // Get the incident
+        // Obtener el incidente
         var incident = await _incidentRepository.GetByIdAsync(request.IncidentId);
         if (incident == null)
             return false;
 
-        // Get the target escalation level
+        // Obtener el nivel destino
         var toLevel = await _escalationLevelRepository.GetByIdAsync(request.ToLevelId);
         if (toLevel == null)
             return false;
 
-        // Get the current escalation level (if any)
+        // Validar que el nivel destino sea mayor al actual
+        var currentLevelOrder = incident.CurrentEscalationLevelId ?? 0;
+        if (toLevel.Order <= currentLevelOrder)
+            return false; // No se puede escalar a un nivel igual o inferior
+
+        // Obtener información del nivel actual
         var fromLevelId = incident.CurrentEscalationLevelId;
         var fromLevelName = incident.CurrentEscalationLevel?.Name ?? "Sin nivel";
 
-        // Create escalation record
+        // Crear registro de escalamiento
         var escalation = new IncidentEscalation
         {
             IncidentId = request.IncidentId,
             FromUserId = request.EscalatedByUserId,
-            ToUserId = request.ToUserId,
+            ToUserId = null, // Se libera, no se asigna a nadie específico
             FromLevelId = fromLevelId,
             ToLevelId = request.ToLevelId,
             Reason = request.Reason,
@@ -63,26 +73,25 @@ public class EscalateIncidentCommandHandler : IRequestHandler<EscalateIncidentCo
         // Cargar el nivel para la notificación
         escalation.ToLevel = toLevel;
 
-        // Update incident's current escalation level
+        // ═══════════════════════════════════════════════════════════════════
+        // CAMBIOS CLAVE: Liberar incidente y registrar quién escaló
+        // ═══════════════════════════════════════════════════════════════════
+        
+        // Guardar quién escaló (para que pueda ver en solo lectura)
+        incident.EscalatedByUserId = request.EscalatedByUserId;
+        
+        // LIBERAR el incidente - ya no está asignado a nadie
+        // Esto permite que personal del nivel superior lo reclame
+        incident.AssignedToId = null;
+        
+        // Actualizar nivel y estado
         incident.CurrentEscalationLevelId = request.ToLevelId;
-        
-        // Change status to Escalated if not already
-        var oldStatus = incident.Status;
-        if (incident.Status != IncidentStatus.Escalated)
-        {
-            incident.Status = IncidentStatus.Escalated;
-        }
-        
-        // If escalated to a specific user, assign them
-        if (!string.IsNullOrEmpty(request.ToUserId))
-        {
-            incident.AssignedToId = request.ToUserId;
-        }
-        
+        incident.Status = IncidentStatus.Escalated;
         incident.UpdatedAt = DateTime.UtcNow;
+        
         await _incidentRepository.UpdateAsync(incident);
 
-        // Record in history
+        // Registrar en historial
         await _historyService.RecordEscalationAsync(
             request.IncidentId,
             request.EscalatedByUserId,

@@ -90,6 +90,25 @@
                         
                         <!-- Body -->
                         <div class="p-6">
+                            @* Indicador de incidente escalado *@
+                            @if (incident.Status == IncidentStatus.Escalated && incident.CurrentEscalationLevelId.HasValue)
+                            {
+                                <div class="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <div class="flex items-center gap-2 text-amber-700 text-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                        </svg>
+                                        <span class="font-medium">
+                                            Escalado a Nivel @incident.CurrentEscalationLevelId
+                                            @if (!string.IsNullOrEmpty(incident.EscalatedByUserName))
+                                            {
+                                                <span class="text-amber-600"> por @incident.EscalatedByUserName</span>
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                            
                             <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">@incident.Title</h3>
                             <p class="text-gray-500 text-sm mb-4 line-clamp-3">@incident.Description</p>
                             
@@ -195,7 +214,10 @@
         isLoading = true;
         try
         {
-            var result = await Mediator.Send(new GetAvailableIncidentsQuery());
+            var result = await Mediator.Send(new GetAvailableIncidentsQuery 
+            { 
+                UserId = currentUserId 
+            });
             availableIncidents = result.ToList();
         }
         catch (Exception ex)

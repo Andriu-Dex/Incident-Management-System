@@ -1,4 +1,3 @@
-using IncidentsTI.Application.Common;
 using IncidentsTI.Application.DTOs;
 using IncidentsTI.Application.Queries;
 using IncidentsTI.Domain.Entities;
@@ -10,73 +9,67 @@ using Microsoft.AspNetCore.Identity;
 namespace IncidentsTI.Application.Handlers;
 
 /// <summary>
-/// Handler para obtener los incidentes disponibles para reclamar.
-/// Filtra según el nivel de soporte del usuario solicitante.
+/// Handler para obtener los incidentes que el usuario escaló.
+/// Estos incidentes se muestran para seguimiento en modo solo lectura.
 /// </summary>
-public class GetAvailableIncidentsQueryHandler : IRequestHandler<GetAvailableIncidentsQuery, IEnumerable<IncidentDto>>
+public class GetEscalatedByMeIncidentsQueryHandler 
+    : IRequestHandler<GetEscalatedByMeIncidentsQuery, IEnumerable<IncidentDto>>
 {
     private readonly IIncidentRepository _incidentRepository;
     private readonly IServiceRepository _serviceRepository;
+    private readonly IEscalationLevelRepository _escalationLevelRepository;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public GetAvailableIncidentsQueryHandler(
+    public GetEscalatedByMeIncidentsQueryHandler(
         IIncidentRepository incidentRepository,
         IServiceRepository serviceRepository,
+        IEscalationLevelRepository escalationLevelRepository,
         UserManager<ApplicationUser> userManager)
     {
         _incidentRepository = incidentRepository;
         _serviceRepository = serviceRepository;
+        _escalationLevelRepository = escalationLevelRepository;
         _userManager = userManager;
     }
 
-    public async Task<IEnumerable<IncidentDto>> Handle(GetAvailableIncidentsQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<IncidentDto>> Handle(
+        GetEscalatedByMeIncidentsQuery request, 
+        CancellationToken cancellationToken)
     {
-        // Obtener el nivel del usuario solicitante
-        var requestingUser = await _userManager.FindByIdAsync(request.UserId);
-        if (requestingUser == null)
-            return Enumerable.Empty<IncidentDto>();
-
-        var roles = await _userManager.GetRolesAsync(requestingUser);
-        var userLevel = UserLevelResolver.GetUserLevel(roles);
-
-        // Si no es personal de soporte, no puede ver incidentes disponibles
-        if (userLevel == 0)
-            return Enumerable.Empty<IncidentDto>();
-
         // Obtener todos los incidentes
         var allIncidents = await _incidentRepository.GetAllAsync();
         
-        // Filtrar incidentes disponibles según el nivel del usuario
-        var availableIncidents = allIncidents
+        // Filtrar incidentes que el usuario escaló y que aún no están cerrados/resueltos
+        // (solo mostramos los que aún están activos para seguimiento)
+        var escalatedByMe = allIncidents
             .Where(i => 
-                // Sin asignar
-                string.IsNullOrEmpty(i.AssignedToId) &&
-                (
-                    // Incidentes nuevos (Open, sin nivel) - todos los niveles pueden verlos
-                    (i.Status == IncidentStatus.Open && !i.CurrentEscalationLevelId.HasValue) ||
-                    
-                    // Incidentes escalados - solo si el usuario tiene nivel >= al requerido
-                    (i.Status == IncidentStatus.Escalated && 
-                     i.CurrentEscalationLevelId.HasValue &&
-                     userLevel >= i.CurrentEscalationLevelId.Value)
-                )
-            )
-            .OrderByDescending(i => i.Priority) // Prioridad más alta primero
-            .ThenBy(i => i.CreatedAt); // Más antiguos primero
+                i.EscalatedByUserId == request.UserId &&
+                i.Status != IncidentStatus.Resolved &&
+                i.Status != IncidentStatus.Closed)
+            .OrderByDescending(i => i.UpdatedAt ?? i.CreatedAt);
 
         var result = new List<IncidentDto>();
 
-        foreach (var incident in availableIncidents)
+        foreach (var incident in escalatedByMe)
         {
-            var user = await _userManager.FindByIdAsync(incident.UserId);
+            var creator = await _userManager.FindByIdAsync(incident.UserId);
+            var assignedTo = !string.IsNullOrEmpty(incident.AssignedToId) 
+                ? await _userManager.FindByIdAsync(incident.AssignedToId) 
+                : null;
             var service = await _serviceRepository.GetByIdAsync(incident.ServiceId);
             
-            // Obtener información del usuario que escaló (si aplica)
-            ApplicationUser? escalatedBy = null;
-            if (!string.IsNullOrEmpty(incident.EscalatedByUserId))
+            // Obtener el nombre del nivel de escalamiento
+            string? escalationLevelName = null;
+            if (incident.CurrentEscalationLevelId.HasValue)
             {
-                escalatedBy = await _userManager.FindByIdAsync(incident.EscalatedByUserId);
+                var level = await _escalationLevelRepository.GetByIdAsync(incident.CurrentEscalationLevelId.Value);
+                escalationLevelName = level?.Name;
             }
+            
+            // Obtener el nombre del usuario que escaló (en este caso es el mismo usuario actual)
+            var escalatedBy = !string.IsNullOrEmpty(incident.EscalatedByUserId) 
+                ? await _userManager.FindByIdAsync(incident.EscalatedByUserId) 
+                : null;
 
             result.Add(new IncidentDto
             {
@@ -93,10 +86,14 @@ public class GetAvailableIncidentsQueryHandler : IRequestHandler<GetAvailableInc
                 Priority = incident.Priority,
                 PriorityName = GetPriorityName(incident.Priority),
                 UserId = incident.UserId,
-                UserName = user != null ? $"{user.FirstName} {user.LastName}" : "",
-                UserEmail = user?.Email ?? "",
+                UserName = creator != null ? $"{creator.FirstName} {creator.LastName}" : "",
+                UserEmail = creator?.Email ?? "",
+                AssignedToId = incident.AssignedToId,
+                AssignedToName = assignedTo != null ? $"{assignedTo.FirstName} {assignedTo.LastName}" : null,
                 CreatedAt = incident.CreatedAt,
+                UpdatedAt = incident.UpdatedAt,
                 CurrentEscalationLevelId = incident.CurrentEscalationLevelId,
+                CurrentEscalationLevelName = escalationLevelName,
                 EscalatedByUserId = incident.EscalatedByUserId,
                 EscalatedByUserName = escalatedBy != null ? $"{escalatedBy.FirstName} {escalatedBy.LastName}" : null
             });

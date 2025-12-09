@@ -48,6 +48,26 @@ else
                 </div>
                 <p class="text-gray-600 text-sm sm:text-base">@incident.Title</p>
             </div>
+            
+            @* Banner de modo solo lectura para incidentes escalados por el usuario *@
+            @if (isEscalatedByMe)
+            {
+                <div class="mb-4 sm:mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <div>
+                            <h3 class="text-amber-800 font-semibold">Modo Solo Lectura</h3>
+                            <p class="text-amber-700 text-sm mt-1">
+                                Escalaste este incidente y ahora está siendo atendido por otro nivel de soporte. 
+                                Puedes ver el progreso pero no puedes realizar acciones sobre él.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
 
             <!-- Main Content -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -258,7 +278,7 @@ else
                             <p class="text-sm text-yellow-700 mb-3">Este incidente aún no ha sido asignado a un técnico.</p>
                             
                             @* Botón de Reclamar para técnicos, pasantes y admins *@
-                            @if (canClaimIncident && incident.Status == IncidentStatus.Open)
+                            @if (canClaimIncident && !isEscalatedByMe && (incident.Status == IncidentStatus.Open || incident.Status == IncidentStatus.Escalated))
                             {
                                 <button @onclick="ClaimIncidentAsync" 
                                         disabled="@isClaiming"
@@ -327,7 +347,7 @@ else
                             <div class="text-sm text-gray-600 mb-3">Sin escalar</div>
                         }
                         
-                        @if (isStaff && incident.Status != IncidentStatus.Closed && incident.Status != IncidentStatus.Resolved)
+                        @if (isStaff && !isEscalatedByMe && incident.Status != IncidentStatus.Closed && incident.Status != IncidentStatus.Resolved)
                         {
                             <button @onclick="OpenEscalateModal" 
                                     class="w-full mt-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2">
@@ -811,6 +831,9 @@ else
     // Claim incident (sistema first-come-first-serve)
     private bool canClaimIncident = false;
     private bool isClaiming = false;
+    
+    // Modo solo lectura para incidentes escalados por el usuario actual
+    private bool isEscalatedByMe = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -824,6 +847,11 @@ else
                           authState.User.IsInRole("Pasante");
         
         await LoadIncident();
+        
+        // Verificar si el usuario actual escaló este incidente (modo solo lectura)
+        isEscalatedByMe = incident?.EscalatedByUserId == currentUserId && 
+                         incident?.AssignedToId != currentUserId;
+        
         await LoadHistory();
         await LoadComments();
         await LoadAttachments();

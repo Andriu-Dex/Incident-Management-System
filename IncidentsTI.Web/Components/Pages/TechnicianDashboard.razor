@@ -333,6 +333,130 @@
                 </div>
             }
         </div>
+        
+        @* Sección de Incidentes que Escalé (Solo Lectura) *@
+        @if (escalatedByMeIncidents.Any())
+        {
+        <div class="mt-6 sm:mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900">Incidentes que Escalé</h2>
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                        @escalatedByMeIncidents.Count()
+                    </span>
+                </div>
+                <button @onclick="() => showEscalatedByMeSection = !showEscalatedByMeSection" 
+                        class="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5 transition-transform @(showEscalatedByMeSection ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            @if (showEscalatedByMeSection)
+            {
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                    <div class="flex items-center gap-2 text-amber-700 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <span><strong>Modo solo lectura:</strong> Estos incidentes fueron escalados y están siendo atendidos por otro nivel de soporte.</span>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <!-- Desktop Table -->
+                    <div class="hidden lg:block">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gradient-to-r from-amber-50 to-orange-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Ticket</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Título</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Servicio</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Nivel Actual</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Asignado A</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach (var incident in escalatedByMeIncidents)
+                                {
+                                    <tr class="hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 transition-all duration-200 cursor-pointer"
+                                        @onclick="() => ViewEscalatedIncidentDetail(incident.Id)">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="font-mono text-sm font-semibold text-amber-600">@incident.TicketNumber</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-medium text-gray-900 max-w-xs truncate">@incident.Title</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            @incident.ServiceName
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+                                                Nivel @incident.CurrentEscalationLevelId
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            @if (string.IsNullOrEmpty(incident.AssignedToName))
+                                            {
+                                                <span class="text-gray-400 italic">Pendiente</span>
+                                            }
+                                            else
+                                            {
+                                                @incident.AssignedToName
+                                            }
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="@GetStatusBadgeClass(incident.Status)">
+                                                @incident.StatusName
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="lg:hidden divide-y divide-gray-200">
+                        @foreach (var incident in escalatedByMeIncidents)
+                        {
+                            <div class="p-4 hover:bg-amber-50 cursor-pointer" @onclick="() => ViewEscalatedIncidentDetail(incident.Id)">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div>
+                                        <span class="font-mono text-sm font-semibold text-amber-600">@incident.TicketNumber</span>
+                                        <h3 class="text-sm font-medium text-gray-900 mt-1">@incident.Title</h3>
+                                        <p class="text-xs text-gray-500">@incident.ServiceName</p>
+                                    </div>
+                                    <span class="@GetStatusBadgeClass(incident.Status) text-xs">
+                                        @incident.StatusName
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded-full font-medium">
+                                        Nivel @incident.CurrentEscalationLevelId
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(incident.AssignedToName))
+                                    {
+                                        <span>• @incident.AssignedToName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="italic">• Pendiente asignación</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        }
     </div>
 </div>
 
@@ -818,12 +942,14 @@
 @code {
     private List<IncidentListDto> incidents = new();
     private List<IncidentDto> availableIncidents = new();
+    private List<IncidentDto> escalatedByMeIncidents = new();
     private List<ServiceDto> services = new();
     private string? currentUserId;
     private DotNetObjectReference<TechnicianDashboard>? dotNetRef;
     
     // Incidentes disponibles para reclamar
     private bool showAvailableSection = true;
+    private bool showEscalatedByMeSection = false;
     private bool isClaimingIncident = false;
     private int claimingIncidentId = 0;
     
@@ -874,6 +1000,7 @@
         Navigation.LocationChanged += OnLocationChanged;
         await LoadIncidents();
         await LoadAvailableIncidents();
+        await LoadEscalatedByMeIncidents();
         await LoadServices();
     }
 
@@ -893,6 +1020,7 @@
     {
         await LoadIncidents();
         await LoadAvailableIncidents();
+        await LoadEscalatedByMeIncidents();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -901,6 +1029,7 @@
     {
         await LoadIncidents();
         await LoadAvailableIncidents();
+        await LoadEscalatedByMeIncidents();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -910,6 +1039,7 @@
         {
             await LoadIncidents();
             await LoadAvailableIncidents();
+            await LoadEscalatedByMeIncidents();
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -930,9 +1060,26 @@
 
     private async Task LoadAvailableIncidents()
     {
-        var query = new GetAvailableIncidentsQuery();
+        if (string.IsNullOrEmpty(currentUserId)) return;
+        
+        var query = new GetAvailableIncidentsQuery { UserId = currentUserId };
         availableIncidents = (await Mediator.Send(query)).ToList();
         Console.WriteLine($"TechnicianDashboard - Incidentes disponibles: {availableIncidents.Count}");
+    }
+    
+    private async Task LoadEscalatedByMeIncidents()
+    {
+        if (string.IsNullOrEmpty(currentUserId)) return;
+        
+        var query = new GetEscalatedByMeIncidentsQuery { UserId = currentUserId };
+        escalatedByMeIncidents = (await Mediator.Send(query)).ToList();
+        Console.WriteLine($"TechnicianDashboard - Incidentes que escalé: {escalatedByMeIncidents.Count}");
+    }
+    
+    private void ViewEscalatedIncidentDetail(int incidentId)
+    {
+        // Redirigir al detalle del incidente (modo solo lectura para incidentes escalados)
+        Navigation.NavigateTo($"/incidents/{incidentId}");
     }
 
     private async Task ClaimIncident(int incidentId)

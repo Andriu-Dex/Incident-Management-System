@@ -283,6 +283,8 @@ namespace IncidentsTI.Infrastructure.Data
             // Check if escalation levels already exist
             if (await context.EscalationLevels.AnyAsync())
             {
+                // Actualizar nombres si es necesario (por si existen con nombres antiguos)
+                await UpdateEscalationLevelNamesAsync(context);
                 return; // Escalation levels already seeded
             }
 
@@ -290,15 +292,15 @@ namespace IncidentsTI.Infrastructure.Data
             {
                 new EscalationLevel
                 {
-                    Name = "Nivel 1 - Mesa de Ayuda",
-                    Description = "Primer nivel de soporte. Atención inicial de incidentes, solución de problemas básicos y documentación.",
+                    Name = "Nivel 1 - Soporte Inicial",
+                    Description = "Primer nivel de atención. Pasantes y personal de soporte para incidentes básicos y documentación inicial.",
                     Order = 1,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new EscalationLevel
                 {
-                    Name = "Nivel 2 - Especialista",
+                    Name = "Nivel 2 - Soporte Técnico",
                     Description = "Segundo nivel de soporte. Técnicos especializados para problemas complejos que requieren conocimiento técnico avanzado.",
                     Order = 2,
                     IsActive = true,
@@ -306,8 +308,8 @@ namespace IncidentsTI.Infrastructure.Data
                 },
                 new EscalationLevel
                 {
-                    Name = "Nivel 3 - Proveedor Externo",
-                    Description = "Tercer nivel de soporte. Proveedores externos o fabricantes para problemas que requieren intervención especializada.",
+                    Name = "Nivel 3 - Soporte Avanzado",
+                    Description = "Tercer nivel de soporte. Administradores y casos que requieren permisos elevados o coordinación con proveedores externos.",
                     Order = 3,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
@@ -316,6 +318,41 @@ namespace IncidentsTI.Infrastructure.Data
 
             await context.EscalationLevels.AddRangeAsync(levels);
             await context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Actualiza los nombres de los niveles de escalamiento si existen con nombres antiguos.
+        /// </summary>
+        private static async Task UpdateEscalationLevelNamesAsync(ApplicationDbContext context)
+        {
+            var levelUpdates = new Dictionary<int, (string Name, string Description)>
+            {
+                { 1, ("Nivel 1 - Soporte Inicial", "Primer nivel de atención. Pasantes y personal de soporte para incidentes básicos y documentación inicial.") },
+                { 2, ("Nivel 2 - Soporte Técnico", "Segundo nivel de soporte. Técnicos especializados para problemas complejos que requieren conocimiento técnico avanzado.") },
+                { 3, ("Nivel 3 - Soporte Avanzado", "Tercer nivel de soporte. Administradores y casos que requieren permisos elevados o coordinación con proveedores externos.") }
+            };
+
+            var levels = await context.EscalationLevels.ToListAsync();
+            bool hasChanges = false;
+
+            foreach (var level in levels)
+            {
+                if (levelUpdates.TryGetValue(level.Order, out var update))
+                {
+                    if (level.Name != update.Name || level.Description != update.Description)
+                    {
+                        level.Name = update.Name;
+                        level.Description = update.Description;
+                        level.UpdatedAt = DateTime.UtcNow;
+                        hasChanges = true;
+                    }
+                }
+            }
+
+            if (hasChanges)
+            {
+                await context.SaveChangesAsync();
+            }
         }
 
         public static async Task SeedKnowledgeArticlesAsync(ApplicationDbContext context, string technicianUserId)
